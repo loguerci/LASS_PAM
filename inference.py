@@ -38,12 +38,12 @@ example_captions = {
 }
 
 def inference(ckpt_path, query_src):
-    device = 'cuda'
+    device = 'cpu'
     mixtures_dir = 'examples'
     mixtures_number = 10
     stft = STFT()
     model = nn.DataParallel(LASSNet(device)).to(device)
-    checkpoint = torch.load(ckpt_path)
+    checkpoint = torch.load(ckpt_path, map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['model'])
     model.eval()
 
