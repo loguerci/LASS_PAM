@@ -55,6 +55,7 @@ def inference(ckpt_path, query_src):
         text_query = ['[CLS] ' + example_captions[query_src][i-1]]
         print(f'Separate target source from {wav_path} with text query: "{text_query[0]}"')
         mixed_mag = mixed_mag.transpose(2,1).unsqueeze(0).to(device)
+        print(mixed_mag.shape)
         est_mask = model(mixed_mag, text_query)
         est_mag = est_mask * mixed_mag  
         est_mag = est_mag.squeeze(1)  
