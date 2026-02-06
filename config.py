@@ -53,12 +53,12 @@ class ModelConfig:
 class TrainingConfig:
     """Training configuration"""
     # Basic
-    batch_size: int = 4
+    batch_size: int = 16
     num_epochs: int = 50
     num_workers: int = 4
     
     # Optimizer
-    learning_rate: float = 1e-4
+    learning_rate: float = 1e-5
     weight_decay: float = 1e-5
     betas: tuple = (0.9, 0.999)
     
