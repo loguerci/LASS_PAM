@@ -152,7 +152,7 @@ class STFT(torch.nn.Module):
         return reconstruction 
 
 if __name__ == '__main__':
-    a = torch.randn(4, 320000)
+    a = torch.randn(4, 160000)
     stft = STFT()
     mag, phase = stft.transform(a)
     # rec_a = stft.inverse(mag, phase)

@@ -85,7 +85,7 @@ class LASS_clap(nn.Module):
         print(f"✓ Loaded {len(unet_state_dict)} parameters")
         if incompatible.missing_keys:
             print(f"⚠ Missing keys (will be randomly initialized): {len(incompatible.missing_keys)}")
-            print(f"  Examples: {incompatible.missing_keys[:5]}")
+            #print(f"  Examples: {incompatible.missing_keys}")
         if incompatible.unexpected_keys:
             print(f"⚠ Unexpected keys (ignored): {len(incompatible.unexpected_keys)}")
         
@@ -120,10 +120,10 @@ if __name__ == "__main__": # run with "python -m model.LASS_clap"
     # 3. Test forward pass
     print("\n3. Testing forward pass...")
     model.eval()
-    x = torch.randn(2, 1, 16384, 513)
-    ref = torch.randn(2, 16000*5)
+    x = torch.randn(1, 1, 16384, 513)
+    ref = torch.randn(1, 16000*5)
     caption = ["flute"] * x.shape[0]
     print(x.shape, ref.shape, len(caption))
     with torch.no_grad():
         mask = model(x, ref, caption)
-    print(mask.shape)  # should be (2, 1, 16384, 513)
+    print(mask.shape)  # should be (1, 1, 16384, 513)

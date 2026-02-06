@@ -5,8 +5,8 @@ import numpy as np
 import scipy.io.wavfile
 
 def load_wav(path):
-    max_length = 32000 * 10
-    wav = librosa.core.load(path, sr=32000)[0]
+    max_length = 16000 * 10
+    wav = librosa.core.load(path, sr=16000)[0]
     if len(wav) > max_length:
         audio = wav[0:max_length]
 
@@ -20,4 +20,4 @@ def load_wav(path):
 
 def save_wav(wav, path):
     wav *= 32767 / max(0.01, np.max(np.abs(wav)))
-    scipy.io.wavfile.write(path, 32000, wav.astype(np.int16))
+    scipy.io.wavfile.write(path, 16000, wav.astype(np.int16))

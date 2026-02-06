@@ -7,6 +7,10 @@ Ensuite il faut les fichiers ckpt.pt (modele sauvegardé) :
     - Modele "music" : https://huggingface.co/lukewys/laion_clap/blob/main/music_audioset_epoch_15_esc_90.14.pt
     - Modele "music & speech" : https://huggingface.co/lukewys/laion_clap/blob/main/music_speech_epoch_15_esc_89.25.pt
 
+Il faut aussi le dataset pour le training :
+- BabySlakh (pour tester) : https://zenodo.org/records/4603870
+- Slakh en 16kHz (dataset de 80 Go) : https://zenodo.org/records/7717249
+
 voici ma pip list pour verifier vos intallations :
 Package                       Version
 ----------------------------- -------------------
