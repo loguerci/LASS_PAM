@@ -101,7 +101,8 @@ class LASSClapTrainer:
         if Path(config.data.val_dir).exists():
             self.val_dataset = LASSClapDataset(
                 data_dir=config.data.val_dir,
-                config=config.data,
+                sample_rate=config.data.sample_rate,
+                segment_samples=int(config.data.duration * config.data.sample_rate),
                 augment=False,
                 cache_in_memory=False
             )

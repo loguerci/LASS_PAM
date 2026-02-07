@@ -1,9 +1,10 @@
-# Language-Queried Audio Source Separation
+# CLAP Language-Queried Audio Source Separation
 
-This repository contains the code and models of "[Separate What You Describe: Language-Queried Audio Source Separation](https://arxiv.org/pdf/2203.15147.pdf)" [INTERSPEECH 2022].
+This repository is derived of the code and models from "[Separate What You Describe: Language-Queried Audio Source Separation](https://arxiv.org/pdf/2203.15147.pdf)" [INTERSPEECH 2022].
+All the modifications have been made as part of an AITAM master project dedicated to Multi-channel Acoustic Source Spearation.
 
 <p align="center">
-  <img align="middle" width="800" src="assets/LASS.png"/>
+  <img align="middle" width="800" src="assets/LASS_clap.png"/>
 </p>
 
 Check the examples and presentation video in the [Demo Page](https://liuxubo717.github.io/LASS-demopage/)!
