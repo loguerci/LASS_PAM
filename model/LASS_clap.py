@@ -18,7 +18,7 @@ class LASS_clap(nn.Module):
             use_text=True
         )
 
-        self.proj = nn.Linear(512, 256)
+        self.proj = nn.Sequential(nn.Linear(512, 256), nn.ReLU(inplace=True))
         self.device = device
 
     def forward(self, x, ref, caption):
