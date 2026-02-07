@@ -14,7 +14,6 @@ Supports:
 Author: LASS project
 """
 
-import os
 import yaml
 import json
 import random
@@ -37,14 +36,24 @@ MIX_DURATION = 10.0
 
 INSTRUMENTS_OF_INTEREST = [
     "Tenor Sax",
-    "Piano",
+    "Alto Sax",
+    "Acoustic Grand Piano",
+    "Bright Acoustic Piano",
+    "Clavinet",
+    "Honky-tonk Piano"
     "Violin",
+    "Viola"
 ]
 
 INSTRUMENT_PROMPTS = {
-    "Tenor Sax": "tenor saxophone",
-    "Piano": "piano",
+    "Tenor Sax": "saxophone",
+    "Alto Sax": "saxophone",
+    "Acoustic Grand Piano": "piano",
+    "Bright Acoustic Piano": "piano",
+    "Clavinet": "piano",
+    "Honky-tonk Piano": "piano",
     "Violin": "violin",
+    "Viola": "viola",
 }
 
 # =============================================================================
@@ -111,7 +120,7 @@ def load_slakh_metadata(track_dir):
         if not s.get("audio_rendered", False):
             continue
         stems[sid] = {
-            "instrument": s["inst_class"],
+            "instrument": s["midi_program_name"],
         }
 
     return {

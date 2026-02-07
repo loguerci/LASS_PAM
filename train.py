@@ -17,6 +17,7 @@ from config import Config
 from dataset import LASSClapDataset, collate_fn
 from model.LASS_clap import LASS_clap
 from utils.losses import get_loss_function, compute_metrics
+from utils.stft import STFT
 
 
 class LASSClapTrainer:
@@ -80,7 +81,8 @@ class LASSClapTrainer:
         print("\nLoading datasets...")
         self.train_dataset = LASSClapDataset(
             data_dir=config.data.train_dir,
-            config=config.data,
+            sample_rate=config.data.sample_rate,
+            segment_samples=int(config.data.duration * config.data.sample_rate),
             augment=config.data.use_augmentation,
             cache_in_memory=False
         )
@@ -113,7 +115,7 @@ class LASSClapTrainer:
                 pin_memory=True if self.device.type == 'cuda' else False
             )
             
-            print(f"✓ Validation dataset: {len(self.val_dataset)} examples")
+            self.stft = STFT()  
         
         # Training state
         self.current_epoch = 0
@@ -337,20 +339,20 @@ class LASSClapTrainer:
         
         for batch_idx, batch in enumerate(pbar):
             # Move to device
-            mixture_spec = batch['mixture_spec'].to(self.device)  # (B, 1, F, T)
-            target_spec = batch['target_spec'].to(self.device)    # (B, 1, F, T)
-            reference_audio = batch['reference_audio'].to(self.device)  # (B, ref_len)
+            mixture = batch['mixture'].to(self.device)  # (B, 1, F, T)
+            target = batch['target'].to(self.device)    # (B, 1, F, T)
+            reference = batch['reference'].to(self.device)  # (B, ref_len)
             prompts = batch['prompts']  # List[str]
-            
-            # Forward pass
-            # LASS_clap.forward(x, ref, caption) -> UNet.forward(x, cond_vec, dec_cond_vec)
-            pred_mask = self.model(mixture_spec, reference_audio, prompts)  # (B, 1, F, T)
+
+            mix_mag, _ = self.stft.transform(mixture)
+            target_mag, _ = self.stft.transform(target)
+            pred_mask = self.model(mix_mag, reference, prompts)  # (B, 1, F, T)
             
             # Apply mask to mixture to get separated spectrogram
-            pred_spec = pred_mask * mixture_spec
+            pred_spec = pred_mask * mixture
             
             # Compute loss (compare with target_spec)
-            loss = self.criterion(pred_spec, target_spec)
+            loss = self.criterion(pred_spec, target_mag)
             
             # Backward pass
             self.optimizer.zero_grad()
@@ -362,7 +364,7 @@ class LASSClapTrainer:
             self.optimizer.step()
             
             # Accumulate metrics
-            batch_size = mixture_spec.size(0)
+            batch_size = mixture.size(0)
             epoch_metrics['loss'] += loss.item() * batch_size
             epoch_metrics['batch_count'] += batch_size
             
@@ -404,22 +406,25 @@ class LASSClapTrainer:
         pbar = tqdm(self.val_loader, desc="Validation")
         
         for batch in pbar:
-            mixture_spec = batch['mixture_spec'].to(self.device)
-            target_spec = batch['target_spec'].to(self.device)
-            reference_audio = batch['reference_audio'].to(self.device)
+            mixture = batch['mixture'].to(self.device)
+            target = batch['target'].to(self.device)
+            reference = batch['reference'].to(self.device)
             prompts = batch['prompts']
             
             # Forward pass
-            pred_mask = self.model(mixture_spec, reference_audio, prompts)
-            pred_spec = pred_mask * mixture_spec
+            mix_mag, _ = self.stft.transform(mixture)
+            target_mag, _ = self.stft.transform(target)
+            
+            pred_mask = self.model(mix_mag, reference, prompts)
+            pred_spec = pred_mask * mix_mag
             
             # Compute loss
-            loss = self.criterion(pred_spec, target_spec)
+            loss = self.criterion(pred_spec, target_mag)
             
             # Compute metrics
-            metrics = compute_metrics(pred_spec, target_spec)
+            metrics = compute_metrics(pred_spec, target_mag)
             
-            batch_size = mixture_spec.size(0)
+            batch_size = pred_spec.size(0)
             val_metrics['loss'] += loss.item() * batch_size
             val_metrics['sdr'] += metrics['sdr'] * batch_size
             val_metrics['batch_count'] += batch_size

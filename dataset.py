@@ -1,44 +1,39 @@
 """
-PyTorch Dataset for LASS_clap training
+Dataset for LASS_clap training
 """
 import json
 import random
 import torch
 import torchaudio
-import numpy as np
-import librosa
 from pathlib import Path
 from torch.utils.data import Dataset
-import torchaudio.transforms as T
+from utils.stft import STFT
 
 
 class LASSClapDataset(Dataset):
     """
     Dataset for LASS_clap training
-    
-    Loads:
-    - mixture.wav (input)
-    - target.wav (ground truth for loss)
-    - reference.wav (for CLAP conditioning)
-    - metadata.json (prompt text)
     """
     
     def __init__(
         self,
         data_dir,
-        config,
+        sample_rate=16000,
+        segment_samples=None,  # None = use full duration
         augment=False,
         cache_in_memory=False
     ):
         """
         Args:
             data_dir: directory containing example_xxxxx folders
-            config: DataConfig instance
+            sample_rate: target sample rate (should match LASS config)
+            segment_samples: length of audio segment in samples (None = full)
             augment: whether to apply data augmentation
             cache_in_memory: load all data in RAM (faster but memory intensive)
         """
         self.data_dir = Path(data_dir)
-        self.config = config
+        self.sample_rate = sample_rate
+        self.segment_samples = segment_samples
         self.augment = augment
         self.cache_in_memory = cache_in_memory
         
@@ -49,26 +44,6 @@ class LASSClapDataset(Dataset):
             raise ValueError(f"No examples found in {data_dir}")
         
         print(f"Found {len(self.examples)} examples in {data_dir}")
-        
-        # Spectrogramme transform
-        self.mel_spec = T.MelSpectrogram(
-            sample_rate=config.sample_rate,
-            n_fft=config.n_fft,
-            hop_length=config.hop_length,
-            n_mels=config.n_mels,
-            power=config.spec_power
-        )
-        
-        # Data augmentation transforms
-        if self.augment:
-            self.pitch_shift = T.PitchShift(
-                sample_rate=config.sample_rate,
-                n_steps=0  # Will be set randomly
-            )
-            self.time_stretch = T.TimeStretch(
-                hop_length=config.hop_length,
-                n_freq=config.n_fft // 2 + 1
-            )
         
         # Cache
         self.cache = {} if cache_in_memory else None
@@ -81,96 +56,124 @@ class LASSClapDataset(Dataset):
     def __len__(self):
         return len(self.examples)
     
+    def _load_audio(self, audio_path, target_length=None):
+        """
+        Load audio file and ensure correct format
+        
+        Args:
+            audio_path: path to .wav file
+            target_length: desired length in samples (None = keep original)
+        
+        Returns:
+            audio: (num_samples,) tensor
+        """
+        # Load audio
+        audio, sr = torchaudio.load(audio_path)
+        
+        # Resample if needed
+        if sr != self.sample_rate:
+            resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
+            audio = resampler(audio)
+        
+        # Convert to mono if stereo
+        if audio.shape[0] > 1:
+            audio = audio.mean(dim=0)
+        else:
+            audio = audio.squeeze(0)
+        
+        # Adjust length if specified
+        if target_length is not None:
+            current_length = audio.shape[0]
+            
+            if current_length > target_length:
+                # Random crop (for training) or center crop
+                if self.augment:
+                    start = random.randint(0, current_length - target_length)
+                else:
+                    start = (current_length - target_length) // 2
+                audio = audio[start:start + target_length]
+            
+            elif current_length < target_length:
+                # Pad with zeros
+                pad_length = target_length - current_length
+                audio = torch.nn.functional.pad(audio, (0, pad_length))
+        
+        return audio
+    
     def _load_example(self, idx):
         """Load a single example from disk"""
         example_dir = self.examples[idx]
         
-        # Load audio files
-        mixture, sr = torchaudio.load(example_dir / 'mixture.wav')
-        target, sr = torchaudio.load(example_dir / 'target.wav')
-        reference, sr = torchaudio.load(example_dir / 'reference.wav')
-        
-        # Ensure correct sample rate
-        if sr != self.config.sample_rate:
-            resampler = T.Resample(sr, self.config.sample_rate)
-            mixture = resampler(mixture)
-            target = resampler(target)
-            reference = resampler(reference)
-        
-        # Ensure mono
-        if mixture.shape[0] > 1:
-            mixture = mixture.mean(dim=0, keepdim=True)
-        if target.shape[0] > 1:
-            target = target.mean(dim=0, keepdim=True)
-        if reference.shape[0] > 1:
-            reference = reference.mean(dim=0, keepdim=True)
-        
         # Load metadata
-        with open(example_dir / 'metadata.json', 'r') as f:
+        metadata_file = example_dir / 'metadata.json'
+        with open(metadata_file, 'r') as f:
             metadata = json.load(f)
         
         prompt = metadata['prompt']
         
+        # Determine target length (if segment_samples is set)
+        target_length = self.segment_samples
+        
+        # Load audio files
+        mixture = self._load_audio(
+            example_dir / 'mixture.wav',
+            target_length=target_length
+        )
+        
+        target = self._load_audio(
+            example_dir / 'target.wav',
+            target_length=target_length
+        )
+        
+        reference = self._load_audio(
+            example_dir / 'reference.wav',
+            target_length=target_length
+        )
+        
         return {
-            'mixture': mixture.squeeze(0),      # (T,)
-            'target': target.squeeze(0),        # (T,)
-            'reference': reference.squeeze(0),  # (T,)
+            'mixture': mixture,      # (num_samples,)
+            'target': target,        # (num_samples,)
+            'reference': reference,  # (num_samples,)
             'prompt': prompt,
-            'example_id': example_dir.name
+            'example_id': example_dir.name,
+            'metadata': metadata
         }
     
     def _apply_augmentation(self, audio):
-        """Apply random data augmentation"""
+        """
+        Apply random data augmentation
+        
+        TODO: Add more augmentations as needed:
+        - Pitch shift
+        - Time stretch
+        - Add noise
+        - Volume change
+        """
         if not self.augment:
             return audio
         
-        # Random pitch shift
+        # Random volume scaling
         if random.random() < 0.5:
-            n_steps = random.randint(*self.config.pitch_shift_range)
-            if n_steps != 0:
-                self.pitch_shift.n_steps = n_steps
-                audio = self.pitch_shift(audio.unsqueeze(0)).squeeze(0)
+            scale = random.uniform(0.8, 1.2)
+            audio = audio * scale
         
-        # Random time stretch (plus complexe, skip pour l'instant)
-        # if random.random() < 0.3:
-        #     rate = random.uniform(*self.config.time_stretch_range)
-        #     ...
+        # TODO: Add more augmentations here
         
         return audio
-    
-    def _compute_spectrogram(self, audio):
-        """
-        Compute mel-spectrogram
-        
-        Args:
-            audio: (T,) tensor
-            
-        Returns:
-            spec: (1, n_mels, T') tensor
-        """
-        # Mel spectrogram
-        spec = self.mel_spec(audio)  # (n_mels, T')
-        
-        # Log scale
-        spec = torch.log(spec + self.config.spec_min)
-        
-        # Add channel dimension
-        spec = spec.unsqueeze(0)  # (1, n_mels, T')
-        
-        return spec
     
     def __getitem__(self, idx):
         """
         Returns:
             dict with:
-            - mixture_spec: (1, n_mels, T') - input spectrogram
-            - target_spec: (1, n_mels, T') - target spectrogram (for loss)
-            - reference_audio: (ref_samples,) - for CLAP conditioning
+            - mixture: (num_samples,) - mixed audio waveform
+            - target: (num_samples,) - target source waveform (for loss)
+            - reference: (num_samples,) - reference audio for CLAP
             - prompt: str - text prompt for CLAP
+            - example_id: str - identifier
         """
         # Load from cache or disk
         if self.cache_in_memory:
-            example = self.cache[idx]
+            example = self.cache[idx].copy()  # Copy to avoid modifying cache
         else:
             example = self._load_example(idx)
         
@@ -179,11 +182,12 @@ class LASSClapDataset(Dataset):
         reference = example['reference']
         prompt = example['prompt']
         
-        # Data augmentation (on mixture and target together to keep consistency)
+        # Data augmentation
+        # Apply SAME augmentation to mixture and target (to maintain consistency)
         if self.augment:
-            # Apply same augmentation to mixture and target
             seed = random.randint(0, 2**32 - 1)
             
+            # Augment mixture and target with same seed
             random.seed(seed)
             mixture = self._apply_augmentation(mixture)
             
@@ -193,106 +197,125 @@ class LASSClapDataset(Dataset):
             # Different augmentation for reference (it's a different excerpt)
             reference = self._apply_augmentation(reference)
         
-        # Compute spectrograms
-        mixture_spec = self._compute_spectrogram(mixture)
-        target_spec = self._compute_spectrogram(target)
-        
-        # Reference stays as waveform for CLAP
-        # CLAP expects raw audio
-        
+        # Return raw waveforms (STFT will be done in training loop)
         return {
-            'mixture_spec': mixture_spec,      # (1, n_mels, T')
-            'target_spec': target_spec,        # (1, n_mels, T')
-            'reference_audio': reference,      # (ref_samples,)
-            'prompt': prompt,                  # str
+            'mixture': mixture,          # (num_samples,) - for STFT in training
+            'target': target,            # (num_samples,) - for STFT in training
+            'reference': reference,      # (num_samples,) - for CLAP
+            'prompt': prompt,            # str
             'example_id': example['example_id']
         }
 
 
 def collate_fn(batch):
     """
-    Custom collate function to handle variable length and text prompts
+    Custom collate function to handle variable length audio and text prompts
+    
+    Args:
+        batch: list of dicts from __getitem__
+    
+    Returns:
+        dict with batched tensors
     """
-    # Find max spectrogram length
-    max_spec_len = max(item['mixture_spec'].shape[2] for item in batch)
+    # Find max length
+    max_mixture_len = max(item['mixture'].shape[0] for item in batch)
+    max_target_len = max(item['target'].shape[0] for item in batch)
+    max_ref_len = max(item['reference'].shape[0] for item in batch)
     
     batch_size = len(batch)
-    n_mels = batch[0]['mixture_spec'].shape[1]
     
     # Initialize padded tensors
-    mixture_specs = torch.zeros(batch_size, 1, n_mels, max_spec_len)
-    target_specs = torch.zeros(batch_size, 1, n_mels, max_spec_len)
-    
-    # Find max reference audio length
-    max_ref_len = max(item['reference_audio'].shape[0] for item in batch)
-    reference_audios = torch.zeros(batch_size, max_ref_len)
+    mixtures = torch.zeros(batch_size, max_mixture_len)
+    targets = torch.zeros(batch_size, max_target_len)
+    references = torch.zeros(batch_size, max_ref_len)
     
     prompts = []
     example_ids = []
     
     for i, item in enumerate(batch):
-        # Pad spectrograms
-        spec_len = item['mixture_spec'].shape[2]
-        mixture_specs[i, :, :, :spec_len] = item['mixture_spec']
-        target_specs[i, :, :, :spec_len] = item['target_spec']
+        # Pad audio
+        mixture_len = item['mixture'].shape[0]
+        mixtures[i, :mixture_len] = item['mixture']
         
-        # Pad reference audio
-        ref_len = item['reference_audio'].shape[0]
-        reference_audios[i, :ref_len] = item['reference_audio']
+        target_len = item['target'].shape[0]
+        targets[i, :target_len] = item['target']
+        
+        ref_len = item['reference'].shape[0]
+        references[i, :ref_len] = item['reference']
         
         prompts.append(item['prompt'])
         example_ids.append(item['example_id'])
     
     return {
-        'mixture_spec': mixture_specs,      # (B, 1, n_mels, T')
-        'target_spec': target_specs,        # (B, 1, n_mels, T')
-        'reference_audio': reference_audios, # (B, max_ref_len)
-        'prompts': prompts,                 # List[str]
-        'example_ids': example_ids          # List[str]
+        'mixture': mixtures,        # (B, num_samples)
+        'target': targets,          # (B, num_samples)
+        'reference': references,    # (B, num_samples)
+        'prompts': prompts,         # List[str]
+        'example_ids': example_ids  # List[str]
     }
 
 
-# Test the dataset
 if __name__ == "__main__":
-    from config import DataConfig
+    from torch.utils.data import DataLoader
     
-    config = DataConfig()
+    print("Testing LASSClapDataset...")
+    print("="*60)
     
-    # Test dataset
+    # Create dataset
     dataset = LASSClapDataset(
-        data_dir="data/processed/train_midi",
-        config=config,
+        data_dir="data/processed/slakh_mixtures/midi_only",
+        sample_rate=16000,
+        segment_samples=16000 * 10,  # 10 seconds
         augment=True,
         cache_in_memory=False
     )
     
-    print(f"Dataset size: {len(dataset)}")
+    print(f"\nDataset size: {len(dataset)}")
     
-    # Test a sample
+    # Test a single sample
+    print("\nTesting single sample...")
     sample = dataset[0]
-    print(f"\nSample 0:")
-    print(f"  mixture_spec: {sample['mixture_spec'].shape}")
-    print(f"  target_spec: {sample['target_spec'].shape}")
-    print(f"  reference_audio: {sample['reference_audio'].shape}")
+    
+    print(f"  mixture: {sample['mixture'].shape}")
+    print(f"  target: {sample['target'].shape}")
+    print(f"  reference: {sample['reference'].shape}")
     print(f"  prompt: {sample['prompt']}")
+    print(f"  example_id: {sample['example_id']}")
     
     # Test dataloader
-    from torch.utils.data import DataLoader
-    
+    print("\nTesting dataloader...")
     dataloader = DataLoader(
         dataset,
         batch_size=4,
         shuffle=True,
-        num_workers=0,
+        num_workers=0,  # Set to 0 for debugging, increase for training
         collate_fn=collate_fn
     )
     
     batch = next(iter(dataloader))
-    print(f"\nBatch:")
-    print(f"  mixture_spec: {batch['mixture_spec'].shape}")
-    print(f"  target_spec: {batch['target_spec'].shape}")
-    print(f"  reference_audio: {batch['reference_audio'].shape}")
-    print(f"  prompts: {batch['prompts']}")
     
-    print("\n✓ Dataset test passed!")
+    print(f"\nBatch shapes:")
+    print(f"  mixture: {batch['mixture'].shape}")
+    print(f"  target: {batch['target'].shape}")
+    print(f"  reference: {batch['reference'].shape}")
+    print(f"  prompts: {len(batch['prompts'])} items")
+    print(f"    Example: {batch['prompts'][0]}")
     
+    # Verify all lengths match
+    assert batch['mixture'].shape[0] == batch['target'].shape[0] == batch['reference'].shape[0]
+    print(f"\n✓ Batch size consistent: {batch['mixture'].shape[0]}")
+
+    mixture = batch['mixture'] # (B, 1, F, T)
+    target = batch['target']   # (B, 1, F, T)
+    reference = batch['reference']  # (B, ref_len)
+    prompts = batch['prompts']  # List[str]
+
+    stft = STFT()
+
+    mix_mag, _ = stft.transform(mixture)
+    target_mag, _ = stft.transform(target)
+
+    print(f"\nSTFT shapes:")
+    print(f"  mix_mag: {mix_mag.shape}")
+    print(f"  target_mag: {target_mag.shape}")
+    print(f"{batch['prompts'][0]}")
