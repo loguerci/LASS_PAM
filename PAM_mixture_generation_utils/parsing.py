@@ -45,6 +45,7 @@ def analyze_slakh(split : str, SLAKH_ROOT : str, INSTRUMENTS_OF_INTEREST : list[
 
     for t in split_dir.glob("Track*"):
         meta = load_slakh_metadata(t)
+        print(meta)
         if meta is not None:
             tracks.append(meta)
 
