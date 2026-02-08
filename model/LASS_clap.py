@@ -93,9 +93,6 @@ class LASS_clap(nn.Module):
 
 
 if __name__ == "__main__": # run with "python -m model.LASS_clap"
-    print("="*60)
-    print("Testing LASS_clap module")
-    print("="*60)
     
     device = torch.device('cpu')
     ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/ckpt/LASSNet.pt'
@@ -122,7 +119,7 @@ if __name__ == "__main__": # run with "python -m model.LASS_clap"
     model.eval()
     x = torch.randn(1, 1, 16384, 513)
     ref = torch.randn(1, 16000*5)
-    caption = ["flute"] * x.shape[0]
+    caption = ["flute"]
     print(x.shape, ref.shape, len(caption))
     with torch.no_grad():
         mask = model(x, ref, caption)

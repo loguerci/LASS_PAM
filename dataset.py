@@ -295,15 +295,6 @@ if __name__ == "__main__":
     batch = next(iter(dataloader))
     
     print(f"\nBatch shapes:")
-    print(f"  mixture: {batch['mixture'].shape}")
-    print(f"  target: {batch['target'].shape}")
-    print(f"  reference: {batch['reference'].shape}")
-    print(f"  prompts: {len(batch['prompts'])} items")
-    print(f"    Example: {batch['prompts'][0]}")
-    
-    # Verify all lengths match
-    assert batch['mixture'].shape[0] == batch['target'].shape[0] == batch['reference'].shape[0]
-    print(f"\n✓ Batch size consistent: {batch['mixture'].shape[0]}")
 
     mixture = batch['mixture'] # (B, 1, F, T)
     target = batch['target']   # (B, 1, F, T)
@@ -315,7 +306,7 @@ if __name__ == "__main__":
     mix_mag, _ = stft.transform(mixture)
     target_mag, _ = stft.transform(target)
 
-    print(f"\nSTFT shapes:")
-    print(f"  mix_mag: {mix_mag.shape}")
-    print(f"  target_mag: {target_mag.shape}")
+    print(f"{mix_mag.shape}")
+    print(f"{target_mag.shape}")
     print(f"{batch['prompts'][0]}")
+    print(f"{reference.shape}")
