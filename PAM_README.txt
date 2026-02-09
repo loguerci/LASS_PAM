@@ -10,7 +10,7 @@ Ensuite il faut les fichiers ckpt.pt (modele sauvegardé) :
 
 Il faut aussi le dataset pour le training :
 - BabySlakh (pour tester) : https://zenodo.org/records/4603870
-- Slakh en 16kHz (dataset de 80 Go) : https://zenodo.org/records/7717249
+- Slakh en 16kHz (dataset de 145 Go) : https://zenodo.org/records/7717249
 
 voici ma pip list pour verifier vos intallations :
 Package                       Version
@@ -35,6 +35,7 @@ decorator                     4.4.2
 docker-pycreds                0.4.0
 entrypoints                   0.4
 exceptiongroup                1.3.1
+fastrlock                     0.8.3
 filelock                      3.4.0
 fsspec                        2023.1.0
 ftfy                          6.1.1
@@ -133,6 +134,7 @@ tornado                       6.1
 tqdm                          4.60.0
 traitlets                     5.1.1
 transformers                  4.30.2
+typing                        3.7.4.3
 typing-extensions             4.7.1
 urllib3                       1.26.20
 wandb                         0.18.7

@@ -86,6 +86,10 @@ class FastMNMF2(Base):
             self.XX_FTMM = self.xp.einsum("fti, ftj -> ftij", self.X_FTM, self.X_FTM.conj())
 
     def init_source_model(self):
+        #===========================================================================================================#
+        # A MODIFIER : W DOIT ETRE LES DISCTIONNAIRES DE NOTE #
+        #              H DOIT ETRE INIT AVEC LA NNLS DE LASSNET SUR LE SPECTROGRAMME DE LA SOURCE CORRESPONDANTE #
+        #===========================================================================================================#
         self.W_NFK = self.xp.random.rand(self.n_source, self.n_freq, self.n_basis).astype(self.TYPE_FLOAT)
         self.H_NKT = self.xp.random.rand(self.n_source, self.n_basis, self.n_time).astype(self.TYPE_FLOAT)
 
@@ -247,7 +251,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("input_fname", type=str, help="filename of the multichannel observed signals")
-    parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
+    parser.add_argument("--gpu", type=int, default=-1, help="GPU ID")
     parser.add_argument("--n_fft", type=int, default=1024, help="number of frequencies")
     parser.add_argument("--n_source", type=int, default=3, help="number of noise")
     parser.add_argument("--n_basis", type=int, default=16, help="number of basis")
@@ -269,7 +273,7 @@ if __name__ == "__main__":
         import numpy as xp
     else:
         try:
-            #import cupy as xp
+            import cupy as xp
 
             print("Use GPU " + str(args.gpu))
             xp.cuda.Device(args.gpu).use()
