@@ -7,6 +7,7 @@ import librosa
 import soundfile as sf
 import random
 from pathlib import Path
+from IPython.display import Audio, display
 
 SAMPLE_RATE = 16000
 MIX_DURATION = 10.0
@@ -15,6 +16,66 @@ MIX_DURATION = 10.0
 MIN_RMS = 1e-4
 MIN_ACTIVITY_RATIO = 0.8
 ACTIVITY_THRESHOLD = 0.01
+
+
+
+def get_active_audio(audio : np.ndarray) -> (np.ndarray | None):
+    """Return active part of audio based on simple thresholding"""
+    active_samples = np.convolve([1, 1], np.abs(audio), mode='same') > 0
+
+    if np.all(~(active_samples.copy())):
+        print("audio.get_active_audio : no active samples found, returning None")
+        return None
+    return audio[active_samples]
+
+
+def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
+    """Load audio segment and return active part"""
+    try:
+        audio, _ = librosa.load(path, sr=sr)
+        if audio is None:
+            print(f"audio.load_audio_segment : failed to load audio from {path} (librosa returned None)")
+            return None
+        active_audio = get_active_audio(audio)
+        if len(active_audio) == 0:
+            print(f"audio.load_audio_segment : no active audio found in {path}")
+            return None
+        return active_audio
+    except Exception as e:
+        print(f"audio.load_audio_segment : error loading {path}: {e}")
+        return None
+
+def scatter_audio_segments(segments :list[np.ndarray], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
+    length = int(mix_duration_s * sr)
+    max_seg_length = int(max_seg_duration_s * sr)
+    mix = np.zeros(length)
+    mix_segments = [(i * length//mix_division, (i+1) * length//mix_division) for i in range(mix_division)]
+    for seg in segments:
+        seg = seg[:len(seg) - max_seg_length]
+        miniseg_length = min(len(seg), max_seg_length)
+        seg_length = len(seg)
+        scatter_indices = []
+        for i, j in mix_segments:
+            k = random.randint(0, len(seg) - miniseg_length + 1)
+            miniseg = seg[k:k + miniseg_length]
+            instance_success = random.random() < instance_probability
+            print(f"audio.scatter_audio_segments : instance success {instance_success} for segment length {miniseg_length} in mix segment ({i}, {j})")
+            if instance_success and (scatter_indices and j > scatter_indices[-1] + miniseg_length) or not scatter_indices:
+                if not scatter_indices:
+                    scatter_indices.append(random.randint(i, j))
+                else :
+                    scatter_indices.append(random.randint(max(i, scatter_indices[-1] + miniseg_length), j))
+        
+        if not scatter_indices:
+            scatter_indices.append(random.randint(0, length - miniseg_length))
+        
+        for i in scatter_indices:
+            print(len(seg), miniseg_length, length, i, min(i+miniseg_length, length) - i - 1)
+            mix[i:min(i+miniseg_length, length)] += miniseg[0:min(miniseg_length, length - i)]
+        
+    mix = .9 * mix / np.max(np.abs(mix))
+    return mix
+
 
 # =============================================================================
 # AUDIO VALIDATION
@@ -36,30 +97,34 @@ def is_audio_valid(audio, min_rms=MIN_RMS, min_activity_ratio=MIN_ACTIVITY_RATIO
 # AUDIO LOADING
 # =============================================================================
 
-def load_audio_segment(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max_attempts=10):
-    """Load valid audio segment with retry"""
-    info = sf.info(path)
-    total = info.duration
-
-    if total <= duration:
-        audio, _ = librosa.load(path, sr=sr)
-        if not is_audio_valid(audio):
-            print(f"audio.load_audio_segment : audio from {path} is too short and invalid")
-            return None
-        pad = int(duration * sr) - len(audio)
-        if pad > 0:
-            audio = np.pad(audio, (0, pad))
-        return audio
-
-    for attempt in range(max_attempts):
-        offset = random.uniform(0, total - duration)
-        audio, _ = librosa.load(path, sr=sr, offset=offset, duration=duration)
-        
-        if is_audio_valid(audio):
-            return audio
-    
-    print(f"audio.load_audio_segment : failed to load valid segment from {path} after {max_attempts} attempts")
-    return None
+#def load_audio_segment(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max_attempts=10):
+#    """Load valid audio segment with retry"""
+#    info = sf.info(path)
+#    total = info.duration
+#    print("audio.load_audio_segment : loading segment from {path} with total duration {total:.2f}s")
+#
+#    if total <= duration:
+#        audio, _ = librosa.load(path, sr=sr)
+#        if audio is None:
+#            print(f"audio.load_audio_segment : failed to load audio from {path} (librosa returned None)")
+#            return None
+#        if not is_audio_valid(audio):
+#            print(f"audio.load_audio_segment : audio from {path} is too short and invalid")
+#            return None
+#        pad = int(duration * sr) - len(audio)
+#        if pad > 0:
+#            audio = np.pad(audio, (0, pad))
+#        return audio
+#
+#    for attempt in range(max_attempts):
+#        offset = random.uniform(0, total - duration)
+#        audio, _ = librosa.load(path, sr=sr, offset=offset, duration=duration)
+#        
+#        if is_audio_valid(audio):
+#            return audio
+#    
+#    print(f"audio.load_audio_segment : failed to load valid segment from {path} after {max_attempts} attempts")
+#    return None
 
 
 def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max_attempts=10):
