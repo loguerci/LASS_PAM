@@ -93,7 +93,7 @@ class Config:
     training: TrainingConfig = TrainingConfig()
     
     # Device
-    device: str = "cpu"  # "cuda" or "cpu"
+    device: str = "cuda"  # "cuda" or "cpu"
     seed: int = 42
     
     # Experiment name
