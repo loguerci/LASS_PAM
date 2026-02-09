@@ -37,8 +37,10 @@ from PAM_mixture_generation_utils.mixing import *
 # CONFIG
 # =============================================================================
 
-type DATASET_T = Literal["babyslakh_16k", "..."] # à compléter # Valide à partir de Python 3.13
-DATASET : DATASET_T = "babyslakh_16k"
+class DATASET_T(Literal):
+    babyslakh_16k = "babyslakh_16k"
+    # ... à compléter pour d'autres datasets
+DATASET = DATASET_T.babyslakh_16k
 
 OUTPUT_ROOT = "data/processed/slakh_mixtures"
 
