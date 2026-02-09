@@ -44,6 +44,7 @@ def load_audio_segment(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max_attempts
     if total <= duration:
         audio, _ = librosa.load(path, sr=sr)
         if not is_audio_valid(audio):
+            print(f"audio.load_audio_segment : audio from {path} is too short and invalid")
             return None
         pad = int(duration * sr) - len(audio)
         if pad > 0:
@@ -57,6 +58,7 @@ def load_audio_segment(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max_attempts
         if is_audio_valid(audio):
             return audio
     
+    print(f"audio.load_audio_segment : failed to load valid segment from {path} after {max_attempts} attempts")
     return None
 
 
@@ -70,7 +72,7 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
     if total < min_required:
         audio = load_audio_segment(path, duration, sr, max_attempts)
         if audio is None:
-            print(f"failed to load valid segment from {path}")
+            print(f"audio.load_two_different_segments : failed to load valid segment from {path}")
             return None, None
         return audio, audio.copy()
     
@@ -79,19 +81,19 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
         audio1, _ = librosa.load(path, sr=sr, offset=offset1, duration=duration)
         
         if not is_audio_valid(audio1):
-            print(f"attempt {attempt+1}: invalid first segment from {path}")
+            print(f"audio.load_two_different_segments : attempt {attempt+1}: invalid first segment from {path}")
             continue
         
         offset2 = offset1 + duration + random.uniform(5, total - offset1 - duration * 2)
         if offset2 + duration > total:
-            print(f"attempt {attempt+1}: invalid second segment offset for {path}")
+            print(f"audio.load_two_different_segments : attempt {attempt+1}: invalid second segment offset for {path}")
             continue
             
         audio2, _ = librosa.load(path, sr=sr, offset=offset2, duration=duration)
         
         if is_audio_valid(audio2):
             return audio1, audio2
-    print(f"failed to load two valid segments from {path} after {max_attempts} attempts")
+    print(f"audio.load_two_different_segments : failed to load two valid segments from {path} after {max_attempts} attempts")
     return None, None
 
 
@@ -126,6 +128,7 @@ def mix_with_snr(target, background, snr_db_low=-2, snr_db_high=8):
     """
     # Validate inputs
     if not is_audio_valid(target) or not is_audio_valid(background):
+        print("audio.mix_with_snr : invalid target or background audio for mixing")
         return None, None, None
     
     # Normalize both to [-1, 1]
@@ -153,6 +156,7 @@ def mix_with_snr(target, background, snr_db_low=-2, snr_db_high=8):
     
     # Final validation
     if not is_audio_valid(mixture) or not is_audio_valid(target):
+        print("audio.mix_with_snr : resulting mixture or target is invalid after mixing")
         return None, None, None
     
     return mixture, target, background_scaled

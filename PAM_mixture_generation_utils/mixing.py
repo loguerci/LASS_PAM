@@ -23,21 +23,21 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
         if s["instrument"] == target_instrument
     ]
     if not target_ids:
-        print(f"target instrument {target_instrument} not found in stem {track_meta["UUID"]}:")
+        print(f"mixing.create_midi_only_mix : target instrument {target_instrument} not found in stem {track_meta["UUID"]}:")
         return None
 
     target_sid = random.choice(target_ids)
     target_file = stems_dir / f"{target_sid}.wav"
     
     if not target_file.exists():
-        print(f"target file {target_file} does not exist")
+        print(f"mixing.create_midi_only_mix : target file {target_file} does not exist")
         return None
 
     # Load target and reference (two different segments)
     target_audio, reference_audio = load_two_different_segments(target_file)
     
     if target_audio is None or reference_audio is None:
-        print(f"failed to load target/reference from {target_file}")
+        print(f"mixing.create_midi_only_mix : failed to load target/reference from {target_file}")
         return None
 
     # Find ONE background stem (different instrument)
@@ -47,7 +47,7 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
     ]
     
     if not bg_candidates:
-        print(f"no valid background candidates for track {track_meta["UUID"]} with target instrument {target_instrument}")
+        print(f"mixing.create_midi_only_mix : no valid background candidates for track {track_meta["UUID"]} with target instrument {target_instrument}")
         return None
     
     # Shuffle and try candidates
@@ -56,17 +56,20 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
     for bg_sid, bg_stem in bg_candidates:
         bg_file = stems_dir / f"{bg_sid}.wav"
         if not bg_file.exists():
+            print(f"mixing.create_midi_only_mix : background file {bg_file} does not exist")
             continue
         
         bg_audio = load_audio_segment(bg_file)
         
         if bg_audio is None:
+            print(f"mixing.create_midi_only_mix : failed to load background audio from {bg_file}")
             continue
         
         # Try to mix
         mixture, target_scaled, _ = mix_with_snr(target_audio, bg_audio)
         
         if mixture is None:
+            print(f"mixing.create_midi_only_mix : failed to mix target {target_file} with background {bg_file}")
             continue
         
         # Success!
@@ -83,6 +86,7 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
         }
     
     # Failed to create valid mix
+    print(f"mixing.create_midi_only_mix : failed to create valid mix for track {track_meta["UUID"]} with target instrument {target_instrument}")
     return None
 
 
@@ -96,6 +100,7 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
     target_audio, reference_audio = load_two_different_segments(real_wav)
     
     if target_audio is None or reference_audio is None:
+        print(f"mixing.create_midi_real_mix : failed to load target/reference from {real_wav}")
         return None
 
     # Find ONE background stem (different instrument than real)
@@ -105,6 +110,7 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
     ]
     
     if not bg_candidates:
+        print(f"mixing.create_midi_real_mix : no valid background candidates in track {bg_track["UUID"]} for real instrument {instrument}")
         return None
     
     # Shuffle and try candidatesUUID
@@ -113,11 +119,13 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
     for bg_sid, bg_stem in bg_candidates:
         bg_file = bg_track["stems_dir"] / f"{bg_sid}.wav"
         if not bg_file.exists():
+            print(f"mixing.create_midi_real_mix : background file {bg_file} does not exist")
             continue
         
         bg_audio = load_audio_segment(bg_file)
         
         if bg_audio is None:
+            print(f"mixing.create_midi_real_mix : failed to load background audio from {bg_file}")
             continue
         
         # Try to mix
@@ -129,6 +137,7 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
         )
         
         if mixture is None:
+            print(f"mixing.create_midi_real_mix : failed to mix real {real_wav} with background {bg_file}")
             continue
         
         # Success!
@@ -145,4 +154,5 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
         }
     
     # Failed to create valid mix
+    print(f"mixing.create_midi_real_mix : failed to create valid mix for real {real_wav} with target instrument {instrument}")
     return None

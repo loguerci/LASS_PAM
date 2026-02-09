@@ -10,6 +10,7 @@ from pathlib import Path
 def load_slakh_metadata(track_dir:Path):
     meta_file = track_dir / "metadata.yaml"
     if not meta_file.exists():
+        print(f"parsing.load_slakh_metadata : metadata file {meta_file} does not exist")
         return None
 
     with open(meta_file, "r") as f:
@@ -17,8 +18,9 @@ def load_slakh_metadata(track_dir:Path):
 
     stems = {}
     for sid, s in meta["stems"].items():
-        #if not s.get("audio_rendered", False):
-        #    continue
+        if not s.get("audio_rendered", False):
+            print(f"parsing.load_slakh_metadata : stem {sid} in track {track_dir.name} is not rendered, skipping")
+            continue
         stems[sid] = {
             "instrument": s["midi_program_name"],
         }
