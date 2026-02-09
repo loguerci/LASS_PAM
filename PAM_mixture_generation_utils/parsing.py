@@ -17,8 +17,8 @@ def load_slakh_metadata(track_dir:Path):
 
     stems = {}
     for sid, s in meta["stems"].items():
-        if not s.get("audio_rendered", False):
-            continue
+        #if not s.get("audio_rendered", False):
+        #    continue
         stems[sid] = {
             "instrument": s["midi_program_name"],
         }

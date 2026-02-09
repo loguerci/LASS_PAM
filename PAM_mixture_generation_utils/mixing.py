@@ -6,7 +6,7 @@ from pathlib import Path
 from .audio import *
 
 
-def create_midi_only_mix(track_meta, target_instrument, INSTRUMENT_PROMPTS):
+def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_PROMPTS):
     """
     Create MIDI-only mixture: 1 target stem + 1 background stem
     
@@ -16,6 +16,8 @@ def create_midi_only_mix(track_meta, target_instrument, INSTRUMENT_PROMPTS):
     stems_dir = track_meta["stems_dir"]
 
     # Find target stem
+    if target_instrument is None:
+        target_instrument = random.choice(list(stems.values()))["instrument"]
     target_ids = [
         sid for sid, s in stems.items()
         if s["instrument"] == target_instrument
