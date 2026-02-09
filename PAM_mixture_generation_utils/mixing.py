@@ -23,18 +23,21 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
         if s["instrument"] == target_instrument
     ]
     if not target_ids:
+        print(f"target instrument {target_instrument} not found in stem {track_meta["UUID"]}:")
         return None
 
     target_sid = random.choice(target_ids)
     target_file = stems_dir / f"{target_sid}.wav"
     
     if not target_file.exists():
+        print(f"target file {target_file} does not exist")
         return None
 
     # Load target and reference (two different segments)
     target_audio, reference_audio = load_two_different_segments(target_file)
     
     if target_audio is None or reference_audio is None:
+        print(f"failed to load target/reference from {target_file}")
         return None
 
     # Find ONE background stem (different instrument)
@@ -44,6 +47,7 @@ def create_midi_only_mix(track_meta, target_instrument:(None | str), INSTRUMENT_
     ]
     
     if not bg_candidates:
+        print(f"no valid background candidates for track {track_meta["UUID"]} with target instrument {target_instrument}")
         return None
     
     # Shuffle and try candidates
@@ -103,7 +107,7 @@ def create_midi_real_mix(real_wav, instrument, bg_track, INSTRUMENT_PROMPTS):
     if not bg_candidates:
         return None
     
-    # Shuffle and try candidates
+    # Shuffle and try candidatesUUID
     random.shuffle(bg_candidates)
     
     for bg_sid, bg_stem in bg_candidates:

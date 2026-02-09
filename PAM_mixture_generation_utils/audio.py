@@ -70,6 +70,7 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
     if total < min_required:
         audio = load_audio_segment(path, duration, sr, max_attempts)
         if audio is None:
+            print(f"failed to load valid segment from {path}")
             return None, None
         return audio, audio.copy()
     
@@ -78,17 +79,19 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
         audio1, _ = librosa.load(path, sr=sr, offset=offset1, duration=duration)
         
         if not is_audio_valid(audio1):
+            print(f"attempt {attempt+1}: invalid first segment from {path}")
             continue
         
         offset2 = offset1 + duration + random.uniform(5, total - offset1 - duration * 2)
         if offset2 + duration > total:
+            print(f"attempt {attempt+1}: invalid second segment offset for {path}")
             continue
             
         audio2, _ = librosa.load(path, sr=sr, offset=offset2, duration=duration)
         
         if is_audio_valid(audio2):
             return audio1, audio2
-    
+    print(f"failed to load two valid segments from {path} after {max_attempts} attempts")
     return None, None
 
 
