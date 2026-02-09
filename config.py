@@ -45,7 +45,7 @@ class ModelConfig:
     use_clap_text: bool = True
     
     # Pretrained weights
-    pretrained_lass_ckpt: str = "ckpt/LASSNet.pt"
+    pretrained_lass_ckpt: str = "pretrained/LASSNet.pt"
     load_pretrained: bool = False
 
 

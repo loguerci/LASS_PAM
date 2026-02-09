@@ -95,7 +95,7 @@ class LASS_clap(nn.Module):
 if __name__ == "__main__": # run with "python -m model.LASS_clap"
     
     device = torch.device('cpu')
-    ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/ckpt/LASSNet.pt'
+    ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/pretrained/LASSNet.pt'
     
     # 1. Initialize model
     print("\n1. Initializing LASS_clap...")

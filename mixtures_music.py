@@ -39,6 +39,7 @@ from PAM_mixture_generation_utils.mixing import *
 
 class DATASET_T(Literal):
     babyslakh_16k = "babyslakh_16k"
+    slakh_16k = "slakh2100_yourmt3_16k"
     # ... à compléter pour d'autres datasets
 DATASET = DATASET_T.babyslakh_16k
 
@@ -57,8 +58,6 @@ else:
         "Alto Sax",
         "Acoustic Grand Piano",
         "Bright Acoustic Piano",
-        "Clavinet",
-        "Honky-tonk Piano",
         "Violin",
         "Viola"
     ]
@@ -68,8 +67,6 @@ INSTRUMENT_PROMPTS = {
     "Alto Sax": "saxophone",
     "Acoustic Grand Piano": "piano",
     "Bright Acoustic Piano": "piano",
-    "Clavinet": "piano",
-    "Honky-tonk Piano": "piano",
     "Violin": "violin",
     "Viola": "viola",
 }
