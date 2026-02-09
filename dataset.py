@@ -263,7 +263,7 @@ if __name__ == "__main__":
     
     # Create dataset
     dataset = LASSClapDataset(
-        data_dir="data/processed/slakh_mixtures/midi_only",
+        data_dir="data/processed/train",
         sample_rate=16000,
         segment_samples=16000 * 10,  # 10 seconds
         augment=True,

@@ -14,16 +14,10 @@ Supports:
 Author: LASS project
 """
 
-
-
-from typing import Literal
-import yaml
 import json
 import random
 import argparse
-import numpy as np
 import soundfile as sf
-import librosa
 from pathlib import Path
 from tqdm import tqdm
 from PAM_mixture_generation_utils.audio import *
@@ -37,13 +31,13 @@ from PAM_mixture_generation_utils.mixing import *
 # CONFIG
 # =============================================================================
 
-class DATASET_T(Literal):
+class DATASET_T:
     babyslakh_16k = "babyslakh_16k"
     slakh_16k = "slakh2100_yourmt3_16k"
-    # ... à compléter pour d'autres datasets
-DATASET = DATASET_T.babyslakh_16k
 
-OUTPUT_ROOT = "data/processed/slakh_mixtures"
+DATASET = DATASET_T.slakh_16k
+
+OUTPUT_ROOT = "data/processed/train"
 
 SAMPLE_RATE = 16000
 MIX_DURATION = 10.0
@@ -52,7 +46,7 @@ if DATASET == "babyslakh_16k":
     SLAKH_ROOT = "data/raw/babyslakh_16k"
     INSTRUMENTS_OF_INTEREST = []
 else:
-    SLAKH_ROOT = "data/raw/..." # à compléter
+    SLAKH_ROOT = "data/raw/slakh2100_yourmt3_16k" # à compléter
     INSTRUMENTS_OF_INTEREST = [
         "Tenor Sax",
         "Alto Sax",
@@ -130,7 +124,7 @@ def main():
             track = random.choice(analysis["with_interest"])
             instrument = random.choice(INSTRUMENTS_OF_INTEREST) if INSTRUMENTS_OF_INTEREST else random.choice(list(track["stems"].values()))["instrument"]
 
-            ex = create_midi_only_mix(track, instrument)
+            ex = create_midi_only_mix(track, instrument, INSTRUMENT_PROMPTS)
             if ex is None:
                 print(f"ex is None for track {track['track_id']} and instrument {instrument}, continuing...")
                 continue

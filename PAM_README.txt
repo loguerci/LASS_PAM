@@ -1,4 +1,5 @@
 Pour le setup le code, il faut creer un environnement en utilisant le fichier "environment.yml", 
+Version python : 3.7.10
 Il faudra pip install (en plus) : laion-clap
 
 Ensuite il faut les fichiers ckpt.pt (modele sauvegardé) :

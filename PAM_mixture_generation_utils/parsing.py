@@ -30,7 +30,7 @@ def load_slakh_metadata(track_dir:Path):
     }
 
 
-def analyze_slakh(split : str, SLAKH_ROOT : str, INSTRUMENTS_OF_INTEREST : list[str] = []):
+def analyze_slakh(split, SLAKH_ROOT, INSTRUMENTS_OF_INTEREST):
     """
     Analyzes the SLakh dataset to find tracks with and without the instruments of interest.
     Args:
@@ -45,7 +45,7 @@ def analyze_slakh(split : str, SLAKH_ROOT : str, INSTRUMENTS_OF_INTEREST : list[
 
     for t in split_dir.glob("Track*"):
         meta = load_slakh_metadata(t)
-        print(meta)
+        #print(meta)
         if meta is not None:
             tracks.append(meta)
 

@@ -8,8 +8,8 @@ from pathlib import Path
 class DataConfig:
     """Data configuration"""
     # Paths
-    train_dir: str = "data/processed/train_midi"
-    val_dir: str = "data/processed/val_midi"  # À créer plus tard
+    train_dir: str = "data/processed/train"
+    val_dir: str = "data/processed/val" 
     
     # Audio parameters
     sample_rate: int = 16000
@@ -46,7 +46,7 @@ class ModelConfig:
     
     # Pretrained weights
     pretrained_lass_ckpt: str = "pretrained/LASSNet.pt"
-    load_pretrained: bool = False
+    load_pretrained: bool = True
 
 
 @dataclass
@@ -83,32 +83,6 @@ class TrainingConfig:
     # Validation
     val_every: int = 1  # epochs
     
-    # Fine-tuning strategy (comme recommandé par votre encadrant)
-    finetune_schedule: dict = None  # À définir plus tard
-    
-    def __post_init__(self):
-        # Fine-tuning schedule par défaut
-        if self.finetune_schedule is None:
-            self.finetune_schedule = {
-                'phase1': {  # Epochs 0-15: freeze encoder
-                    'epochs': (0, 15),
-                    'freeze_encoder': True,
-                    'freeze_decoder_blocks': [0, 1, 2],  # Freeze early decoder blocks
-                    'lr': self.learning_rate
-                },
-                'phase2': {  # Epochs 16-30: unfreeze decoder gradually
-                    'epochs': (16, 30),
-                    'freeze_encoder': True,
-                    'freeze_decoder_blocks': [0],  # Unfreeze more decoder blocks
-                    'lr': self.learning_rate * 0.5
-                },
-                'phase3': {  # Epochs 31+: fine-tune all (except encoder)
-                    'epochs': (31, 999),
-                    'freeze_encoder': True,  # TOUJOURS freeze l'encodeur
-                    'freeze_decoder_blocks': [],
-                    'lr': self.learning_rate * 0.1
-                }
-            }
 
 
 @dataclass
