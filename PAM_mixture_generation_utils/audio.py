@@ -45,7 +45,7 @@ def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
         print(f"audio.load_audio_segment : error loading {path}: {e}")
         return None
 
-def scatter_audio_segments(segments :list[np.ndarray], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
+def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
     length = int(mix_duration_s * sr)
     max_seg_length = int(max_seg_duration_s * sr)
     mix = np.zeros(length)
@@ -53,13 +53,11 @@ def scatter_audio_segments(segments :list[np.ndarray], mix_duration_s : float = 
     for seg in segments:
         seg = seg[:len(seg) - max_seg_length]
         miniseg_length = min(len(seg), max_seg_length)
-        seg_length = len(seg)
         scatter_indices = []
         for i, j in mix_segments:
             k = random.randint(0, len(seg) - miniseg_length + 1)
             miniseg = seg[k:k + miniseg_length]
             instance_success = random.random() < instance_probability
-            print(f"audio.scatter_audio_segments : instance success {instance_success} for segment length {miniseg_length} in mix segment ({i}, {j})")
             if instance_success and (scatter_indices and j > scatter_indices[-1] + miniseg_length) or not scatter_indices:
                 if not scatter_indices:
                     scatter_indices.append(random.randint(i, j))
@@ -72,6 +70,9 @@ def scatter_audio_segments(segments :list[np.ndarray], mix_duration_s : float = 
         for i in scatter_indices:
             print(len(seg), miniseg_length, length, i, min(i+miniseg_length, length) - i - 1)
             mix[i:min(i+miniseg_length, length)] += miniseg[0:min(miniseg_length, length - i)]
+    
+    for seg in no_process_segments:
+        mix += seg[:length]
         
     mix = .9 * mix / np.max(np.abs(mix))
     return mix
