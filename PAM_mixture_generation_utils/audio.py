@@ -45,7 +45,7 @@ def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
         print(f"audio.load_audio_segment : error loading {path}: {e}")
         return None
 
-def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
+def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray] = [], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
     length = int(mix_duration_s * sr)
     max_seg_length = int(max_seg_duration_s * sr)
     mix = np.zeros(length)
