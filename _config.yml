@@ -1,0 +1,22 @@
+title: "Sound recording and Music sound separation project"
+description: "Description courte"
+url: "https://sourceseparation2025-2026.github.io"
+theme: minimal-mistakes-jekyll
+
+# Navigation
+navbar:
+  - title: "Photos"
+    url: /photo
+  - title: "Audio files"
+    url: /audio
+  - title: "Test"
+    url: /test
+
+# Auteur
+author:
+  name: "Loïs Guerci, Louis Gosselin, Samy Benzaïm, Antonin Longeot, Jean-Henri Nothias"
+  email: "guerci@ircam.fr"
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/loguerci/LASS_PAM"
