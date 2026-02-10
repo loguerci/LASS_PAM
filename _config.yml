@@ -1,10 +1,15 @@
 title: "Sound recording and Music sound separation project"
 description: "Description courte"
 url: "https://sourceseparation2025-2026.github.io"
-theme: minimal-mistakes-jekyll
+baseurl: "/LASS_PAM"  # Important ! Nom de votre repo
+remote_theme: mmistakes/minimal-mistakes
 
 # Navigation
-navbar:
+masthead_title: "LASS PAM"
+minimal_mistakes_skin: "default"
+
+# Menu principal
+navigation:
   - title: "Photos"
     url: /photo
   - title: "Audio files"
