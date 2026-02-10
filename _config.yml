@@ -1,27 +1,45 @@
 title: "Sound recording and Music sound separation project"
-description: "Description courte"
+description: "MSS project using CLASS and FastMNMF"
 url: "https://sourceseparation2025-2026.github.io"
-baseurl: "/LASS_PAM"  # Important ! Nom de votre repo
-remote_theme: mmistakes/minimal-mistakes
+baseurl: "/LASS_PAM"
+remote_theme: mmistakes/minimal-mistakes@4.24.0
+
+# Plugins
+plugins:
+  - jekyll-remote-theme
+  - jekyll-include-cache
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-gist
+  - jekyll-feed
 
 # Navigation
-masthead_title: "LASS PAM"
 minimal_mistakes_skin: "default"
 
 # Menu principal
-navigation:
-  - title: "Photos"
-    url: /photo
-  - title: "Audio files"
-    url: /audio
-  - title: "Test"
-    url: /test
+header:
+  pages:
+    - title: "Photos"
+      url: /photo/
+    - title: "Audio files"
+      url: /audio/
+    - title: "Test"
+      url: /test/
 
 # Auteur
 author:
   name: "Loïs Guerci, Louis Gosselin, Samy Benzaïm, Antonin Longeot, Jean-Henri Nothias"
   email: "guerci@ircam.fr"
+  bio: "ATIAM students - IRCAM, Paris"
   links:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/loguerci/LASS_PAM"
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: single
+      author_profile: true
