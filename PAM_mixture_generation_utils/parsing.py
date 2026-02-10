@@ -7,6 +7,26 @@ import yaml
 from pathlib import Path
 
 
+def track_metadata(track_dir: Path) -> (dict | None):
+    meta_file = track_dir / "metadata.yaml"
+    if not meta_file.exists():
+        print(f"parsing.track_metadata : metadata file {meta_file} does not exist")
+        return None
+
+    with open(meta_file, "r") as f:
+        meta = yaml.safe_load(f)
+        print(meta)
+        return meta
+
+
+def track_stems_and_instr(track_meta: dict) -> dict[str, str]:
+    return {k: v["midi_program_name"] for k, v in track_meta["stems"].items()}
+
+def filter_stems_by_keywords(stems_and_instruments: dict[str, str], filt: (list[str] | None), reject:list[str]=[]) -> dict[str, str]:
+    return {s : i for s, i in stems_and_instruments.items() if (filt is None or any(k.upper() in i.upper() for k in filt)) and not any(r.upper() in i.upper() for r in reject)}
+
+
+
 def load_slakh_metadata(track_dir:Path):
     meta_file = track_dir / "metadata.yaml"
     if not meta_file.exists():

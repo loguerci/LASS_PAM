@@ -68,7 +68,6 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
             scatter_indices.append(random.randint(0, length - miniseg_length))
         
         for i in scatter_indices:
-            print(len(seg), miniseg_length, length, i, min(i+miniseg_length, length) - i - 1)
             mix[i:min(i+miniseg_length, length)] += miniseg[0:min(miniseg_length, length - i)]
     
     for seg in no_process_segments:
