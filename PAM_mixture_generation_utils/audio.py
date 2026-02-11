@@ -21,6 +21,9 @@ ACTIVITY_THRESHOLD = 0.01
 
 def get_active_audio(audio : np.ndarray) -> (np.ndarray | None):
     """Return active part of audio based on simple thresholding"""
+    if audio is None or len(audio) == 0:
+        print("audio.get_active_audio : input audio is None or empty, returning None")
+        return None
     active_samples = np.convolve([1, 1], np.abs(audio), mode='same') > 0
 
     if np.all(~(active_samples.copy())):
@@ -177,6 +180,9 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
 
 def normalize_energy(audio, alpha=1.0):
     """Normalize audio to [-alpha, alpha] range"""
+    if audio is None or len(audio) == 0:
+        print("audio.normalize_energy : input audio is None or empty, returning original audio")
+        return None
     val_max = np.max(np.abs(audio))
     if val_max < 1e-8:
         return audio
