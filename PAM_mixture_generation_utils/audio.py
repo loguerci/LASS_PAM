@@ -51,6 +51,9 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
     mix = np.zeros(length)
     mix_segments = [(i * length//mix_division, (i+1) * length//mix_division) for i in range(mix_division)]
     for seg in segments:
+        if seg is None:
+            print("audio.scatter_audio_segments : one of the segments is None, skipping this segment")
+            continue
         seg = seg[:len(seg) - max_seg_length]
         miniseg_length = min(len(seg), max_seg_length)
         scatter_indices = []
@@ -75,6 +78,12 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
         
     mix = .9 * mix / np.max(np.abs(mix))
     return mix
+
+def save_audio(path, audio, sr=SAMPLE_RATE):
+    try:
+        sf.write(path, audio, sr)
+    except Exception as e:
+        print(f"audio.save_audio : error saving {path}: {e}")
 
 
 # =============================================================================
