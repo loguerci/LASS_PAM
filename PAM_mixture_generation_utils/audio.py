@@ -15,16 +15,16 @@ MIX_DURATION = 10.0
 # Audio quality thresholds
 MIN_RMS = 1e-4
 MIN_ACTIVITY_RATIO = 0.8
-ACTIVITY_THRESHOLD = 0.01
+ACTIVITY_THRESHOLD = 0.001
 
 
 
-def get_active_audio(audio : np.ndarray) -> (np.ndarray | None):
+def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD) -> (np.ndarray | None):
     """Return active part of audio based on simple thresholding"""
     if audio is None or len(audio) == 0:
         print("audio.get_active_audio : input audio is None or empty, returning None")
         return None
-    active_samples = np.convolve([1, 1], np.abs(audio), mode='same') > 0
+    active_samples = np.convolve([1, 1], np.abs(audio), mode='same') > ACTIVITY_THRESHOLD
 
     if np.all(~(active_samples.copy())):
         print("audio.get_active_audio : no active samples found, returning None")
@@ -43,7 +43,7 @@ def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
         if len(active_audio) == 0:
             print(f"audio.load_audio_segment : no active audio found in {path}")
             return None
-        return active_audio
+        return np.nan_to_num(active_audio, nan=0.0, posinf=0.0, neginf=0.0)
     except Exception as e:
         print(f"audio.load_audio_segment : error loading {path}: {e}")
         return None
@@ -57,11 +57,16 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
         if seg is None:
             print("audio.scatter_audio_segments : one of the segments is None, skipping this segment")
             continue
-        seg = seg[:len(seg) - max_seg_length]
+        if len(seg) > max_seg_length:
+            seg = seg[:min(len(seg), max_seg_length)]
         miniseg_length = min(len(seg), max_seg_length)
+        if miniseg_length ==  0:
+            print("audio.scatter_audio_segments : one of the segments is empty after trimming, skipping this segment")
+            continue
         scatter_indices = []
         for i, j in mix_segments:
-            k = random.randint(0, len(seg) - miniseg_length + 1)
+            # Fix: ensure k doesn't go beyond the valid range
+            k = random.randint(0, max(0, len(seg) - miniseg_length))
             miniseg = seg[k:k + miniseg_length]
             instance_success = random.random() < instance_probability
             if instance_success and (scatter_indices and j > scatter_indices[-1] + miniseg_length) or not scatter_indices:
@@ -71,15 +76,26 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
                     scatter_indices.append(random.randint(max(i, scatter_indices[-1] + miniseg_length), j))
         
         if not scatter_indices:
-            scatter_indices.append(random.randint(0, length - miniseg_length))
+            scatter_indices.append(random.randint(0, max(0, length - miniseg_length)))
         
-        for i in scatter_indices:
-            mix[i:min(i+miniseg_length, length)] += miniseg[0:min(miniseg_length, length - i)]
-    
+        for idx in scatter_indices:
+            remaining = length - idx
+            if remaining <= 0:
+                continue
+            # Fix: use actual length of miniseg, not miniseg_length
+            seg_len = min(len(miniseg), remaining)
+            if seg_len <= 0:
+                continue
+            mix[idx:idx + seg_len] += np.nan_to_num(
+                    miniseg[:seg_len],
+                    nan=0.0,
+                    posinf=0.0,
+                    neginf=0.0
+                )    
     for seg in no_process_segments:
         mix += seg[:length]
         
-    mix = .9 * mix / np.max(np.abs(mix))
+    mix = .9 * mix / (np.max(np.abs(mix)) + 1e-6)
     return mix
 
 def save_audio(path, audio, sr=SAMPLE_RATE):
@@ -181,7 +197,7 @@ def load_two_different_segments(path, duration=MIX_DURATION, sr=SAMPLE_RATE, max
 def normalize_energy(audio, alpha=1.0):
     """Normalize audio to [-alpha, alpha] range"""
     if audio is None or len(audio) == 0:
-        print("audio.normalize_energy : input audio is None or empty, returning original audio")
+        print("audio.normalize_energy : input audio is None or empty, returning None")
         return None
     val_max = np.max(np.abs(audio))
     if val_max < 1e-8:
