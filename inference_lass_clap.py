@@ -28,7 +28,7 @@ def get_dataloader(data_dir, shuffle):
 
 if __name__ == '__main__':
 
-    device = 'cpu'
+    device = 'cuda'
     stft = STFT()
     model = nn.DataParallel(LASS_clap(device)).to(device)
     ckpt_path = ''
@@ -56,8 +56,8 @@ if __name__ == '__main__':
         pred = mask * mix_mag
 
         # Metrics 
-        pred_wav = stft.inverse(pred.cpu().detach(), _)
-        target_wav = stft.inverse(target_mag.cpu().detach(), _)
+        pred_wav = stft.inverse(pred.cuda().detach(), _)
+        target_wav = stft.inverse(target_mag.cuda().detach(), _)
 
         sdr, sir, sar, perm = fast_bss_eval.bss_eval_sources(pred_wav, target_wav)
         total_sdr += sdr

@@ -11,7 +11,7 @@ def _torch_to_numpy_audio(x: torch.Tensor):
     returns: np.ndarray float32 in [-1, 1]
     """
     if x.is_cuda:
-        x = x.cpu()
+        x = x.cuda()
     x = x.detach()
 
     return x.numpy().astype(np.float32)
@@ -20,7 +20,7 @@ class ClapConditioner(nn.Module):
     def __init__(
         self,
         clap_ckpt: str,
-        device: torch.device = torch.device('cpu'),
+        device: torch.device = torch.device('cuda'),
         use_audio: bool = True,
         use_text: bool = True,
     ):
@@ -37,7 +37,7 @@ class ClapConditioner(nn.Module):
             amodel="HTSAT-base"
         )
         self.clap.load_ckpt(clap_ckpt)
-        self.clap.to('cpu')
+        self.clap.to('cuda')
         self.clap.eval()
 
         # Freeze CLAP
@@ -61,14 +61,14 @@ class ClapConditioner(nn.Module):
             assert audio_ref is not None, "audio_ref is required"
             audio_np = _torch_to_numpy_audio(audio_ref)
             z_audio = self.clap.get_audio_embedding_from_data(audio_np)  # [B, D_clap]
-            z_audio = torch.from_numpy(z_audio).to('cpu')
+            z_audio = torch.from_numpy(z_audio).to('cuda')
             z_audio = F.normalize(z_audio, dim=-1)
             embeddings.append(z_audio)
 
         if self.use_text:
             assert text is not None, "text is required"
             z_text = self.clap.get_text_embedding(text)  # [B, D_clap]
-            z_text = torch.from_numpy(z_text).to('cpu')
+            z_text = torch.from_numpy(z_text).to('cuda')
             z_text = F.normalize(z_text, dim=-1)
             embeddings.append(z_text)
 

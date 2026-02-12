@@ -22,7 +22,7 @@ from utils.stft import STFT
 class Trainer:
     def __init__(self, config):
         self.config = config
-        self.device = 'cpu'
+        self.device = 'cuda'
         
         Path(config.training.checkpoint_dir).mkdir(parents=True, exist_ok=True)
         Path(config.training.log_dir).mkdir(parents=True, exist_ok=True)

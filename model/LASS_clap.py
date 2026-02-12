@@ -5,7 +5,7 @@ from .resunet_film import UNetRes_FiLM
 from .clap import ClapConditioner
 
 class LASS_clap(nn.Module):
-    def __init__(self, device='cpu'):
+    def __init__(self, device='cuda'):
         super(LASS_clap, self).__init__()
         
         self.UNet = UNetRes_FiLM(channels=1, cond_embedding_dim=256)
@@ -91,7 +91,7 @@ class LASS_clap(nn.Module):
 
 if __name__ == "__main__": # run with "python -m model.LASS_clap"
     
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/pretrained/LASSNet.pt'
     
     # 1. Initialize model
