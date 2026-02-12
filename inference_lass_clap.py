@@ -37,7 +37,6 @@ if __name__ == '__main__':
     model.eval()
 
     val_loader = get_dataloader(None, shuffle=False) 
-    criterion = torch.nn.L1Loss()
 
     pbar = tqdm(val_loader, desc=f"Validation")
     total_sdr, total_sir, total_sar, total_mae = 0, 0, 0, 0
@@ -64,11 +63,9 @@ if __name__ == '__main__':
         total_sdr += sdr
         total_sir += sir
         total_sar += sar
-        total_mae += criterion(pred, target_mag).item()
 
     num_batches = len(val_loader)
     print(f"Average SDR: {total_sdr / num_batches:.2f} dB")
     print(f"Average SIR: {total_sir / num_batches:.2f} dB")
     print(f"Average SAR: {total_sar / num_batches:.2f} dB")
-    print(f"Average MAE: {total_mae / num_batches:.4f}")
 

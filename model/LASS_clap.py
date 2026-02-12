@@ -7,8 +7,6 @@ from .clap import ClapConditioner
 class LASS_clap(nn.Module):
     def __init__(self, device='cpu'):
         super(LASS_clap, self).__init__()
-        # Plus besoin de Text_Encoder puisque CLAP le remplace
-        # self.text_embedder = Text_Encoder(device)  # SUPPRIMER
         
         self.UNet = UNetRes_FiLM(channels=1, cond_embedding_dim=256)
         self.clap_conditioner = ClapConditioner(
@@ -37,8 +35,7 @@ class LASS_clap(nn.Module):
         )  # [B, 512]
         cond_vec = self.proj(cond_vec)  # [B, 256]
         
-        # Apply U-Net with FiLM conditioning
-        print(cond_vec.shape, x.shape)
+
         mask = self.UNet(x, cond_vec, cond_vec)  # encoder and decoder conditioning
         mask = torch.sigmoid(mask)
         

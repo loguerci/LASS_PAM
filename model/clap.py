@@ -20,7 +20,7 @@ class ClapConditioner(nn.Module):
     def __init__(
         self,
         clap_ckpt: str,
-        device: torch.device,
+        device: torch.device = torch.device('cpu'),
         use_audio: bool = True,
         use_text: bool = True,
     ):
@@ -37,7 +37,7 @@ class ClapConditioner(nn.Module):
             amodel="HTSAT-base"
         )
         self.clap.load_ckpt(clap_ckpt)
-        self.clap.to(device)
+        self.clap.to('cpu')
         self.clap.eval()
 
         # Freeze CLAP
