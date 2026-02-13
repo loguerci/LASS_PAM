@@ -15,16 +15,16 @@ MIX_DURATION = 10.0
 # Audio quality thresholds
 MIN_RMS = 1e-4
 MIN_ACTIVITY_RATIO = 0.8
-ACTIVITY_THRESHOLD = 0.001
+ACTIVITY_THRESHOLD = 0.01
 
 
 
-def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD) -> (np.ndarray | None):
+def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD, convolve_length = 2) -> (np.ndarray | None):
     """Return active part of audio based on simple thresholding"""
     if audio is None or len(audio) == 0:
         print("audio.get_active_audio : input audio is None or empty, returning None")
         return None
-    active_samples = np.convolve([1, 1], np.abs(audio), mode='same') > ACTIVITY_THRESHOLD
+    active_samples = np.convolve([1]*convolve_length, np.abs(audio), mode='same') > ACTIVITY_THRESHOLD
 
     if np.all(~(active_samples.copy())):
         print("audio.get_active_audio : no active samples found, returning None")
@@ -32,15 +32,15 @@ def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD
     return audio[active_samples]
 
 
-def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
+def load_audio_segment(path, sr=SAMPLE_RATE, convolve_length = 2) -> (np.ndarray | None):
     """Load audio segment and return active part"""
     try:
         audio, _ = librosa.load(path, sr=sr)
         if audio is None:
             print(f"audio.load_audio_segment : failed to load audio from {path} (librosa returned None)")
             return None
-        active_audio = get_active_audio(audio)
-        if len(active_audio) == 0:
+        active_audio = get_active_audio(audio, convolve_length = convolve_length)
+        if active_audio is None or len(active_audio) == 0:
             print(f"audio.load_audio_segment : no active audio found in {path}")
             return None
         return np.nan_to_num(active_audio, nan=0.0, posinf=0.0, neginf=0.0)
@@ -48,31 +48,36 @@ def load_audio_segment(path, sr=SAMPLE_RATE) -> (np.ndarray | None):
         print(f"audio.load_audio_segment : error loading {path}: {e}")
         return None
 
-def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray] = [], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0) -> np.ndarray:
+def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray] = [], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0, dbg = False) -> np.ndarray:
     length = int(mix_duration_s * sr)
     max_seg_length = int(max_seg_duration_s * sr)
     mix = np.zeros(length)
     mix_segments = [(i * length//mix_division, (i+1) * length//mix_division) for i in range(mix_division)]
+    
     for seg in segments:
         if seg is None:
             print("audio.scatter_audio_segments : one of the segments is None, skipping this segment")
             continue
-        if len(seg) > max_seg_length:
-            seg = seg[:min(len(seg), max_seg_length)]
+        #if dbg:
+        #    print(f"seg")
+        #    display(Audio(seg, rate=sr))
+        #if len(seg) > max_seg_length:
+        #    seg = seg[:min(len(seg), max_seg_length)]
+        #if dbg:
+        #    print(f"seg")
+        #    display(Audio(seg, rate=sr))
         miniseg_length = min(len(seg), max_seg_length)
-        if miniseg_length ==  0:
+        if miniseg_length == 0:
             print("audio.scatter_audio_segments : one of the segments is empty after trimming, skipping this segment")
             continue
+            
         scatter_indices = []
         for i, j in mix_segments:
-            # Fix: ensure k doesn't go beyond the valid range
-            k = random.randint(0, max(0, len(seg) - miniseg_length))
-            miniseg = seg[k:k + miniseg_length]
             instance_success = random.random() < instance_probability
             if instance_success and (scatter_indices and j > scatter_indices[-1] + miniseg_length) or not scatter_indices:
                 if not scatter_indices:
                     scatter_indices.append(random.randint(i, j))
-                else :
+                else:
                     scatter_indices.append(random.randint(max(i, scatter_indices[-1] + miniseg_length), j))
         
         if not scatter_indices:
@@ -82,21 +87,30 @@ def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : lis
             remaining = length - idx
             if remaining <= 0:
                 continue
-            # Fix: use actual length of miniseg, not miniseg_length
+            
+            # FIX: Extract a fresh random chunk for THIS position
+            k = random.randint(0, max(0, len(seg) - miniseg_length))
+            miniseg = seg[k:k + miniseg_length]
+            #if dbg:
+            #    print("miniseg")
+            #    display(Audio(miniseg, rate=sr))
+            
             seg_len = min(len(miniseg), remaining)
             if seg_len <= 0:
                 continue
             mix[idx:idx + seg_len] += np.nan_to_num(
-                    miniseg[:seg_len],
-                    nan=0.0,
-                    posinf=0.0,
-                    neginf=0.0
-                )    
+                miniseg[:seg_len],
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0
+            )    
+    
     for seg in no_process_segments:
-        mix += seg[:length]
+        mix += np.nan_to_num(seg[:length], nan=0.0, posinf=0.0, neginf=0.0)
+
         
-    mix = .9 * mix / (np.max(np.abs(mix)) + 1e-6)
-    return mix
+    mix = .9 * mix / (np.max(np.abs(mix)))
+    return np.nan_to_num(mix, nan=0.0, posinf=0.0, neginf=0.0)
 
 def save_audio(path, audio, sr=SAMPLE_RATE):
     try:
@@ -202,7 +216,7 @@ def normalize_energy(audio, alpha=1.0):
     val_max = np.max(np.abs(audio))
     if val_max < 1e-8:
         return audio
-    return (audio / val_max) * alpha
+    return np.nan_to_num((audio / val_max) * alpha, nan=0.0, posinf=0.0, neginf=0.0)
 
 
 def unify_energy(*audios):
