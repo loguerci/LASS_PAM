@@ -18,6 +18,8 @@ from dataset import LASSClapDataset, collate_fn
 from model.LASS_clap import LASS_clap
 from utils.stft import STFT
 
+CUDA_VISIBLE_DEVICES=1
+
 
 class Trainer:
     def __init__(self, config):
