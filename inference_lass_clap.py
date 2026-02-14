@@ -59,7 +59,9 @@ if __name__ == '__main__':
         pred_wav = stft.inverse(pred.cuda().detach(), _)
         target_wav = stft.inverse(target_mag.cuda().detach(), _)
 
-        sdr, sir, sar, perm = fast_bss_eval.bss_eval_sources(pred_wav, target_wav)
+        sdr, sir, sar, _ = fast_bss_eval.bss_eval_sources(pred_wav, target_wav)
+        si_sdr, _, _, _ = fast_bss_eval.si_bss_eval_sources(pred_wav, target_wav)
+
         total_sdr += sdr
         total_sir += sir
         total_sar += sar
