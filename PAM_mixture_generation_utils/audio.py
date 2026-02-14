@@ -19,7 +19,7 @@ ACTIVITY_THRESHOLD = 0.01
 
 
 
-def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD, convolve_length = 2) -> (np.ndarray | None):
+def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD, convolve_length = 2):
     """Return active part of audio based on simple thresholding"""
     if audio is None or len(audio) == 0:
         print("audio.get_active_audio : input audio is None or empty, returning None")
@@ -29,10 +29,10 @@ def get_active_audio(audio : np.ndarray, ACTIVITY_THRESHOLD = ACTIVITY_THRESHOLD
     if np.all(~(active_samples.copy())):
         print("audio.get_active_audio : no active samples found, returning None")
         return None
-    return audio[active_samples]
+    return normalize_energy(audio[active_samples], alpha=1.0)
 
 
-def load_audio_segment(path, sr=SAMPLE_RATE, convolve_length = 2) -> (np.ndarray | None):
+def load_audio_segment(path, sr=SAMPLE_RATE, convolve_length = 2):
     """Load audio segment and return active part"""
     try:
         audio, _ = librosa.load(path, sr=sr)
@@ -48,7 +48,7 @@ def load_audio_segment(path, sr=SAMPLE_RATE, convolve_length = 2) -> (np.ndarray
         print(f"audio.load_audio_segment : error loading {path}: {e}")
         return None
 
-def scatter_audio_segments(segments :list[np.ndarray], no_process_segments : list[np.ndarray] = [], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0, dbg = False) -> np.ndarray:
+def scatter_audio_segments(segments :list, no_process_segments : list = [], mix_duration_s : float = MIX_DURATION, sr :int = SAMPLE_RATE, mix_division=10, instance_probability = .5, max_seg_duration_s = 5.0, dbg = False) -> np.ndarray:
     length = int(mix_duration_s * sr)
     max_seg_length = int(max_seg_duration_s * sr)
     mix = np.zeros(length)

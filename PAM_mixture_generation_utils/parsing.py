@@ -7,7 +7,7 @@ import yaml
 from pathlib import Path
 import os
 
-def track_metadata(track_dir: Path) -> (dict | None):
+def track_metadata(track_dir: Path):
     meta_file = Path(os.path.join(track_dir,"metadata.yaml"))
     if not meta_file.exists():
         print(f"parsing.track_metadata : metadata file {meta_file} does not exist")
@@ -19,10 +19,10 @@ def track_metadata(track_dir: Path) -> (dict | None):
         return meta
 
 
-def track_stems_and_instr(track_meta: dict) -> dict[str, str]:
+def track_stems_and_instr(track_meta: dict):
     return {k: v["midi_program_name"] for k, v in track_meta["stems"].items()}
 
-def filter_stems_by_keywords(stems_and_instruments: dict[str, str], filt: (list[str] | None), reject:list[str]=[]) -> dict[str, dict[str, str]]:
+def filter_stems_by_keywords(stems_and_instruments: dict, filt: list, reject:list=[]):
     if filt is None:
         filt = set(stems_and_instruments.values())
     return {inst : {s : i for s, i in stems_and_instruments.items() if inst.upper() in i.upper() and not any(r.upper() in i.upper() for r in reject)} for inst in filt}

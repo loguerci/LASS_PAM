@@ -1,6 +1,5 @@
 import audio as aud
 import parsing
-from IPython.display import display, Audio
 import os
 import numpy as np
 from pathlib import Path
@@ -10,13 +9,15 @@ import json
 CLIP_LENGTH = 10
 SAMPLE_RATE = 16000
 NUMBER_OF_DATAPOINTS = -1
+MAX_BACKGROUND_INSTRUMENTS = 3
 
-DATASET_DIR = Path("<COMPLETE HERE>/slakh2100_yourmt3_16k/train")
-RECORDED_DIR = Path("<COMPLETE HERE>/Records/Records")
-OUTPUT_DIR = Path("<COMPLETE HERE>/generated_dataset")
+DATASET_DIR = "<COMPLETE HERE>/slakh2100_yourmt3_16k/train"
+RECORDED_DIR = "<COMPLETE HERE>/Records/Records"
+OUTPUT_DIR = "<COMPLETE HERE>/generated_dataset"
 
 REFERENCE_IS_CLIP_LENGTH = True
 VERBOSE = True
+OVERWRITE_PREVIOUS_ATTEMPTS = False
 
 FILTER = ["violin", "piano", "sax", "violon_rec", "piano_rec", "saxophone_rec"]
 REJECT = ["electric", "synth"]
@@ -31,9 +32,25 @@ assert NUMBER_OF_DATAPOINTS >= 0, "Please set the NUMBER_OF_DATAPOINTS variable 
 
 
 
+print("Configuration: {")
+print(f"    DATASET_DIR: {DATASET_DIR}")
+print(f"    RECORDED_DIR: {RECORDED_DIR}")
+print(f"    OUTPUT_DIR: {OUTPUT_DIR}")
+print(f"    SAMPLE_RATE: {SAMPLE_RATE}")
+print(f"    CLIP_LENGTH: {CLIP_LENGTH}")
+print(f"    NUMBER_OF_DATAPOINTS: {NUMBER_OF_DATAPOINTS}")
+print(f"    MAX_BACKGROUND_INSTRUMENTS: {MAX_BACKGROUND_INSTRUMENTS}")
+print(f"    REFERENCE_IS_CLIP_LENGTH: {REFERENCE_IS_CLIP_LENGTH}")
+print(f"    FILTER: {FILTER}")
+print(f"    REJECT: {REJECT}")
+print(f"    VERBOSE: {VERBOSE}")
+print(f"    OVERWRITE_PREVIOUS_ATTEMPTS: {OVERWRITE_PREVIOUS_ATTEMPTS}")
+print("}")
 
 
-def instrument_sets(dataset_dir : Path = DATASET_DIR, recorded_dir : Path = RECORDED_DIR) -> dict[str, list[Path]]:
+
+
+def instrument_sets(dataset_dir : Path = DATASET_DIR, recorded_dir : Path = RECORDED_DIR):
     instr_sets = dict()
     for f in os.listdir(dataset_dir):
         if not os.path.isdir(os.path.join(dataset_dir, f)):
@@ -68,7 +85,7 @@ def instrument_sets(dataset_dir : Path = DATASET_DIR, recorded_dir : Path = RECO
                     instr_sets[k_instr].append(recorded_dir + '/' + dir + '/' + f)
     return instr_sets
 
-def filter_instr_by_keywords(instr_sets:dict[str, list[Path]], filt, rej, recorded_dir : Path = RECORDED_DIR) -> dict[str, list[Path]]:
+def filter_instr_by_keywords(instr_sets:dict, filt, rej, recorded_dir : Path = RECORDED_DIR):
     res = dict()
     for f in filt:
         if f not in res:
@@ -79,7 +96,7 @@ def filter_instr_by_keywords(instr_sets:dict[str, list[Path]], filt, rej, record
                 res[f] += stems
     return res
 
-def chose_rand_stems(instrs_and_stems : dict[str, list[Path]], instruments : list[str], n=1) -> list[tuple[str, str, Path]]:
+def chose_rand_stems(instrs_and_stems : dict, instruments : list, n=1):
     """ returns a list of n tuples of the form (instrument type (keyword), instrument, stem_path)
         for each keyword in `instruments`,
         where instrument is a random instrument matching the keyword
@@ -93,30 +110,45 @@ def chose_rand_stems(instrs_and_stems : dict[str, list[Path]], instruments : lis
             res.append((i, k, stem_path))
     return res
 
-def build_datapoint(instrs_and_stems : dict[str, list[Path]], filtered_instr_and_stems : dict[str, list[Path]], prompt_target_recording:tuple[str, str, Path], mix_duration_s=30, mix_division=5, instance_probability=.5, max_seg_duration_s=5.0):
+def build_datapoint(instrs_and_stems : dict, filtered_instr_and_stems : dict, prompt_target_recording:tuple, mix_duration_s=30, mix_division=5, instance_probability=.5, max_seg_duration_s=5.0, max_background_instruments=4):
     res = dict()
     metadata = dict()
     background_instruments = set()
-    while len(background_instruments) < 4:
+    while len(background_instruments) < max_background_instruments:
         attempt = None
         while attempt is None:
             b = random.choice(list(instrs_and_stems.keys()))
+            if instrs_and_stems[b] == []:
+                print(f"    No stems found for {b}, sanitizing and retrying...")
+                instrs_and_stems.pop(b) # sanitization : if no stems are found for an instrument, remove it from the pool to avoid retrying on it
+                continue
             if prompt_target_recording[1].upper() not in b.upper():
-                attempt = aud.load_audio_segment(random.choice(instrs_and_stems[b]), convolve_length=256)
+                s = random.choice(instrs_and_stems[b])
+                attempt = aud.load_audio_segment(s, convolve_length=256)
                 if attempt is None:
-                    print(f"Failed to load background instrument {b}, retrying...")
+                    print(f"    Failed to load background instrument {b}, sanitizing and retrying...")
+                    instrs_and_stems[b].remove(s) # sanitization : if a stem fails to load, remove it from the pool to avoid retrying on it
         background_instruments.add(b)
     background_keyword_instrument_stems = chose_rand_stems(instrs_and_stems, list(background_instruments), n=1)
 
     _prompt_instr = [i for i in filtered_instr_and_stems.keys() if prompt_target_recording[0].upper() in i.upper()]
     reference = None
     for i in range(10):
-        x = filtered_instr_and_stems[random.choice(_prompt_instr)]
+        choice = random.choice(_prompt_instr)
+        x = filtered_instr_and_stems[choice]
         if not x:
+            print(f"    No stems found for {choice}, sanitizing and skipping")
+            filtered_instr_and_stems.pop(choice)
             continue
-        reference = aud.normalize_energy(aud.load_audio_segment(random.choice(x), convolve_length=256))
+
+        s = random.choice(x)
+        reference = aud.normalize_energy(aud.load_audio_segment(s, convolve_length=256))
         if reference is not None:
             break
+        else:
+            print(f"    Failed to load reference {s}, sanitizing and retrying...")
+            filtered_instr_and_stems[choice].remove(s) # sanitization : if a stem fails to load, remove it from the pool to avoid retrying on it
+    
     if reference is None:
         raise Exception(f"Could not load reference audio for prompt {prompt_target_recording[0]} after 10 attempts")
     if REFERENCE_IS_CLIP_LENGTH:
@@ -146,7 +178,7 @@ def build_datapoint(instrs_and_stems : dict[str, list[Path]], filtered_instr_and
     meta_json = json.dumps(metadata)
     return res, meta_json, background_instruments
 
-def save_datapoint(datapoint : dict[str, np.ndarray], metadata_json : str, save_dir : str):
+def save_datapoint(datapoint : dict, metadata_json : str, save_dir : str):
     os.makedirs(save_dir, exist_ok=True)
     aud.save_audio(os.path.join(save_dir, 'reference.wav'), datapoint['reference'])
     aud.save_audio(os.path.join(save_dir, 'target.wav'), datapoint['target'])
@@ -171,23 +203,27 @@ if VERBOSE:
 
 print("generating datapoints...")
 for i in range(NUMBER_OF_DATAPOINTS):
+    if not OVERWRITE_PREVIOUS_ATTEMPTS and os.path.exists(os.path.join(OUTPUT_DIR, f"example_{i}")):
+        print(f"{100*(i+1)/NUMBER_OF_DATAPOINTS:.0f}% (skip)")
+        continue
     attempt = None
     while attempt is None:
         prompt_target = random.choice(chose_rand_stems(filtered, FILTER, n=1))
-        p, inst, t = prompt_target
+        p, inst, s = prompt_target
         if p == "saxophone_rec":
            p = "saxophone"
         if p == "violon_rec":
             p = "violin"
         if p == "piano_rec":
             p = "piano"
-        prompt_target  = (p, inst, t)
+        prompt_target  = (p, inst, s)
 
         attempt = aud.load_audio_segment(prompt_target[2], convolve_length=256)
         if attempt is None and VERBOSE:
-             print(f"Failed to load prompt target {prompt_target[2]}, retrying...")
+            print(f"    Failed to load prompt target {prompt_target[2]}, sanitizing and retrying...")
+            filtered[inst].remove(s) # sanitization : if a stem fails to load, remove it from the pool to avoid retrying on it
     
-    datapoint, metadata_json, background = build_datapoint(instrs_and_stems, filtered, prompt_target, mix_duration_s=10, mix_division=5, instance_probability=.8, max_seg_duration_s=3.0)
+    datapoint, metadata_json, background = build_datapoint(instrs_and_stems, filtered, prompt_target, mix_duration_s=10, mix_division=5, instance_probability=.8, max_seg_duration_s=3.0, max_background_instruments=MAX_BACKGROUND_INSTRUMENTS)
     
     if VERBOSE:
         print("-"*20 + f"DATAPOINT {i} ({100*(i+1)/NUMBER_OF_DATAPOINTS:.0f}%)" + "-"*20)
