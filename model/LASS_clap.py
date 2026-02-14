@@ -13,7 +13,7 @@ class LASS_clap(nn.Module):
             clap_ckpt='/home/lolo/ATIAM/PAM/LASS_PAM/pretrained/music_audioset_epoch_15_esc_90.14.pt',
             device=device,
             use_audio=True,
-            use_text=True
+            use_text=False
         )
 
         self.proj = nn.Sequential(nn.Linear(512, 256), nn.ReLU(inplace=True))

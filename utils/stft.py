@@ -7,7 +7,7 @@ import librosa.util as librosa_util
 from librosa.util import pad_center, tiny
 # from audio_processing import window_sumsquare
 
-def window_sumsquare(window, n_frames, hop_length=512, win_length=1024,
+def window_sumsquare(window, n_frames, hop_length=256, win_length=1024,
                      n_fft=1024, dtype=np.float32, norm=None):
     """
     # from librosa 0.6
@@ -52,7 +52,7 @@ def window_sumsquare(window, n_frames, hop_length=512, win_length=1024,
 
 class STFT(torch.nn.Module):
     """adapted from Prem Seetharaman's https://github.com/pseeth/pytorch-stft"""
-    def __init__(self, filter_length=1024, hop_length=512, win_length=1024,
+    def __init__(self, filter_length=1024, hop_length=256, win_length=1024,
                  window='hann'):
         super(STFT, self).__init__()
         self.filter_length = filter_length

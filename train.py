@@ -18,7 +18,7 @@ from dataset import LASSClapDataset, collate_fn
 from model.LASS_clap import LASS_clap
 from utils.stft import STFT
 
-CUDA_VISIBLE_DEVICES=1
+CUDA_VISIBLE_DEVICES=2
 
 
 class Trainer:
@@ -144,6 +144,9 @@ class Trainer:
             # STFT
             mix_mag, _ = self.stft.transform(mixture)
             target_mag, _ = self.stft.transform(target)
+
+            mix_mag = mix_mag.unsqueeze(1)
+            target_mag = target_mag.unsqueeze(1)
             
             # Forward
             mask = self.model(mix_mag, reference, prompts)
@@ -183,6 +186,9 @@ class Trainer:
             
             mix_mag, _ = self.stft.transform(mixture)
             target_mag, _ = self.stft.transform(target)
+
+            mix_mag = mix_mag.unsqueeze(1)
+            target_mag = target_mag.unsqueeze(1)
             
             mask = self.model(mix_mag, reference, prompts)
             pred = mask * mix_mag

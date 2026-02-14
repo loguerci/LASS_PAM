@@ -8,12 +8,12 @@ import json
 
 CLIP_LENGTH = 10
 SAMPLE_RATE = 16000
-NUMBER_OF_DATAPOINTS = -1
+NUMBER_OF_DATAPOINTS = 1500
 MAX_BACKGROUND_INSTRUMENTS = 3
 
-DATASET_DIR = "<COMPLETE HERE>/slakh2100_yourmt3_16k/train"
-RECORDED_DIR = "<COMPLETE HERE>/Records/Records"
-OUTPUT_DIR = "<COMPLETE HERE>/generated_dataset"
+DATASET_DIR = "/home/lolo/ATIAM/PAM/LASS_PAM/data/raw/slakh2100_yourmt3_16k/train"
+RECORDED_DIR = "/home/lolo/ATIAM/PAM/LASS_PAM/data/records/Records"
+OUTPUT_DIR = "/home/lolo/ATIAM/PAM/LASS_PAM/data/processed"
 
 REFERENCE_IS_CLIP_LENGTH = True
 VERBOSE = True

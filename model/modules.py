@@ -4,6 +4,42 @@ import torch.nn.functional as F
 import math
 from .film import Film
 
+def match_dimensions(x, target):
+    """
+    Match spatial dimensions of x to target by cropping or padding
+    Fixes U-Net skip connection dimension mismatches
+    """
+    if x.shape[2:] == target.shape[2:]:
+        return x
+    
+    diff_h = x.shape[2] - target.shape[2]
+    diff_w = x.shape[3] - target.shape[3]
+    
+    # Height adjustment
+    if diff_h > 0:
+        # Crop (center crop)
+        h_start = diff_h // 2
+        x = x[:, :, h_start:h_start + target.shape[2], :]
+    elif diff_h < 0:
+        # Pad
+        pad_top = (-diff_h) // 2
+        pad_bottom = -diff_h - pad_top
+        x = F.pad(x, (0, 0, pad_top, pad_bottom))
+    
+    # Width adjustment
+    if diff_w > 0:
+        # Crop (center crop)
+        w_start = diff_w // 2
+        x = x[:, :, :, w_start:w_start + target.shape[3]]
+    elif diff_w < 0:
+        # Pad
+        pad_left = (-diff_w) // 2
+        pad_right = -diff_w - pad_left
+        x = F.pad(x, (pad_left, pad_right, 0, 0))
+    
+    return x
+
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, activation, momentum):
         super(ConvBlock, self).__init__()
@@ -208,6 +244,7 @@ class DecoderBlockRes2BCond(nn.Module):
     def forward(self, input_tensor, concat_tensor, cond_vec, both=False):
         x = self.conv1(F.relu_(self.bn1(input_tensor)))
         x = self.prune(x, both=both)
+        x = match_dimensions(x, concat_tensor)
         x = torch.cat((x, concat_tensor), dim=1)
         x = self.conv_block2(x, cond_vec)
         x = self.conv_block3(x, cond_vec)
