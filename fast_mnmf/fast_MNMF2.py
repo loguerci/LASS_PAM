@@ -90,7 +90,13 @@ class FastMNMF2(Base):
         # A MODIFIER : W DOIT ETRE LES DISCTIONNAIRES DE NOTE #
         #              H DOIT ETRE INIT AVEC LA NNLS DE LASSNET SUR LE SPECTROGRAMME DE LA SOURCE CORRESPONDANTE #
         #===========================================================================================================#
-        self.W_NFK = self.xp.random.rand(self.n_source, self.n_freq, self.n_basis).astype(self.TYPE_FLOAT)
+        #self.W_NFK = self.xp.random.rand(self.n_source, self.n_freq, self.n_basis).astype(self.TYPE_FLOAT)
+        W = np.load("..\W_dictionary.npy")  # (N, F, K)
+
+        assert W.shape[0] == self.n_source
+        assert W.shape[1] == self.n_freq
+
+        self.W_NFK = self.xp.asarray(W).astype(self.TYPE_FLOAT)
         self.H_NKT = self.xp.random.rand(self.n_source, self.n_basis, self.n_time).astype(self.TYPE_FLOAT)
 
     def init_spatial_model(self):
@@ -168,7 +174,7 @@ class FastMNMF2(Base):
         tmp2_NFT = self.xp.einsum("nm, ftm -> nft", self.G_NM, 1 / self.Y_FTM)
         numerator = self.xp.einsum("nkt, nft -> nfk", self.H_NKT, tmp1_NFT)
         denominator = self.xp.einsum("nkt, nft -> nfk", self.H_NKT, tmp2_NFT)
-        self.W_NFK *= self.xp.sqrt(numerator / denominator)
+        #self.W_NFK *= self.xp.sqrt(numerator / denominator) # à décommenter pour débolquer W
         self.calculate_PSD()
         self.calculate_Y()
 
