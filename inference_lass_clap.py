@@ -31,15 +31,16 @@ if __name__ == '__main__':
     device = 'cuda'
     stft = STFT()
     model = nn.DataParallel(LASS_clap(device)).to(device)
-    ckpt_path = ''
+    ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/checkpoints/lass_clap/best.pth'
+    test_path= 'data/processed/test'
     checkpoint = torch.load(ckpt_path, map_location=torch.device(device))
     model.load_state_dict(checkpoint['model'])
     model.eval()
 
-    val_loader = get_dataloader(None, shuffle=False) 
+    test_loader = get_dataloader(test_path, shuffle=False) 
 
-    pbar = tqdm(val_loader, desc=f"Validation")
-    total_sdr, total_sir, total_sar, total_mae = 0, 0, 0, 0
+    pbar = tqdm(test_loader, desc=f"Testing")
+    total_sdr, total_sir, total_sar, total_si_sdr = 0, 0, 0, 0
 
     for batch in pbar:
         mixture = batch['mixture'].to(device)
@@ -65,9 +66,11 @@ if __name__ == '__main__':
         total_sdr += sdr
         total_sir += sir
         total_sar += sar
+        total_si_sdr += si_sdr
 
-    num_batches = len(val_loader)
+    num_batches = len(test_loader)
     print(f"Average SDR: {total_sdr / num_batches:.2f} dB")
     print(f"Average SIR: {total_sir / num_batches:.2f} dB")
     print(f"Average SAR: {total_sar / num_batches:.2f} dB")
+    print(f"Average SI-SDR: {total_si_sdr / num_batches:.2f} dB")
 
