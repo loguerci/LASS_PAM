@@ -122,3 +122,46 @@ if __name__ == '__main__':
     print(f"Average SAR:    {total_sar / num_samples:.2f} dB")
     print(f"Average SI-SDR: {total_si_sdr / num_samples:.2f} dB")
     print(f"{'='*60}")
+
+    #---------------------------------------------------------------------------
+    # Process one audio file for qualitative analysis
+    #---------------------------------------------------------------------------
+    import soundfile as sf
+    import os   
+
+    audio_path = 'examples/Dont_know_short.wav'
+    mixture, sr = sf.read(audio_path)
+    assert sr == 16000, "Sample rate must be 16 kHz"
+    mixture_tensor = torch.from_numpy(mixture).float().unsqueeze(0).to(device)  # (1, T)
+    mix_mag, mix_phase = stft.transform(mixture_tensor) 
+    mix_mag = mix_mag.unsqueeze(1)  # (1, 1, F, T')
+    mask_violon = model(mix_mag, None, 'violin')  
+    mask_sax = model(mix_mag, None, 'saxophone')
+    mask_piano = model(mix_mag, None, 'piano')
+    
+    pred_mag_violon = mask_violon * mix_mag
+    pred_mag_violon_squeezed = pred_mag_violon.squeeze(1)  
+    pred_wav_violon = stft.inverse(pred_mag_violon_squeezed, mix_phase)  
+    pred_wav_violon = pred_wav_violon.squeeze(1).numpy()  
+    
+    pred_mag_sax = mask_sax * mix_mag
+    pred_mag_sax_squeezed = pred_mag_sax.squeeze(1)  
+    pred_wav_sax = stft.inverse(pred_mag_sax_squeezed, mix_phase)  
+    pred_wav_sax = pred_wav_sax.squeeze(1).numpy()  
+    
+    pred_mag_piano = mask_piano * mix_mag
+    pred_mag_piano_squeezed = pred_mag_piano.squeeze(1)  
+    pred_wav_piano = stft.inverse(pred_mag_piano_squeezed, mix_phase)  
+    pred_wav_piano = pred_wav_piano.squeeze(1).numpy()  
+    
+    output_dir = 'examples/outputs'
+    os.makedirs(output_dir, exist_ok=True)
+    output_path_violon = os.path.join(output_dir, 'pred_violon.wav')
+    output_path_sax = os.path.join(output_dir, 'pred_sax.wav')
+    output_path_piano = os.path.join(output_dir, 'pred_piano.wav')
+    sf.write(output_path_violon, pred_wav_violon, sr)
+    sf.write(output_path_sax, pred_wav_sax, sr)
+    sf.write(output_path_piano, pred_wav_piano, sr)
+    print(f"Predicted violin saved to: {output_path_violon}")
+    print(f"Predicted saxophone saved to: {output_path_sax}")
+    print(f"Predicted piano saved to: {output_path_piano}")
