@@ -10,10 +10,10 @@ class LASS_clap(nn.Module):
         
         self.UNet = UNetRes_FiLM(channels=1, cond_embedding_dim=256)
         self.clap_conditioner = ClapConditioner(
-            clap_ckpt='/home/lolo/ATIAM/PAM/LASS_PAM/pretrained/music_audioset_epoch_15_esc_90.14.pt',
+            clap_ckpt='/home/infres/lgosselin-25/LASS_PAM/pretrained/music_audioset_epoch_15_esc_90.14.pt',
             device=device,
             use_audio=True,
-            use_text=False
+            use_text=True
         )
 
         self.proj = nn.Sequential(nn.Linear(512, 256), nn.ReLU(inplace=True))
@@ -92,7 +92,7 @@ class LASS_clap(nn.Module):
 if __name__ == "__main__": # run with "python -m model.LASS_clap"
     
     device = torch.device('cuda')
-    ckpt_path = '/home/lolo/ATIAM/PAM/LASS_PAM/pretrained/LASSNet.pt'
+    ckpt_path = '/home/infres/lgosselin-25/LASS_PAM/pretrained/LASSNet.pt'
     
     # 1. Initialize model
     print("\n1. Initializing LASS_clap...")
