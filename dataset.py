@@ -286,8 +286,8 @@ if __name__ == "__main__":
     print("\nTesting dataloader...")
     dataloader = DataLoader(
         dataset,
-        batch_size=4,
-        shuffle=True,
+        batch_size=1,
+        shuffle=False,
         num_workers=0,  # Set to 0 for debugging, increase for training
         collate_fn=collate_fn
     )
@@ -307,6 +307,7 @@ if __name__ == "__main__":
     target_mag, _ = stft.transform(target)
 
     print(f"{mix_mag.shape}")
+    print(f"{mixture.shape}")
     print(f"{target_mag.shape}")
-    print(f"{batch['prompts'][0]}")
+    print(f"{batch['prompts']}")
     print(f"{reference.shape}")

@@ -19,7 +19,7 @@ def get_dataloader(data_dir, shuffle):
     
     return DataLoader(
         dataset,
-        batch_size=2,
+        batch_size=1,
         shuffle=shuffle,
         num_workers=1,
         collate_fn=collate_fn,
@@ -28,7 +28,7 @@ def get_dataloader(data_dir, shuffle):
 
 
 if __name__ == '__main__':
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0')
     
     stft = STFT(
         filter_length=1024,
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     
     model = LASS_clap(device=device).to(device)
     
-    ckpt_path = '/home/infres/lgosselin-25/LASS_PAM/checkpoints/exp_lr_10e-4_best_0.24/best.pth'
+    ckpt_path = '/home/infres/lgosselin-25/LASS_PAM/checkpoints/lass_clap/ckpt_epoch_50.pth'
     checkpoint = torch.load(ckpt_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -82,12 +82,26 @@ if __name__ == '__main__':
             
             # Compute metrics for each sample
             batch_size = pred_wav.shape[0]
+
+                
+            sdr, _, sar = fast_bss_eval.bss_eval_sources(
+                    target_wav,
+                    pred_wav,
+                    compute_permutation=False
+                )
+            
+            si_sdr, _, _= fast_bss_eval.si_bss_eval_sources(
+                    target_wav,
+                    pred_wav,
+                    compute_permutation=False
+                    )
+
             
             for i in range(batch_size):
                 pred_i = pred_wav[i:i+1]     # (1, T)
                 target_i = target_wav[i:i+1] # (1, T)
                 
-                sdr, sir, sar = fast_bss_eval.bss_eval_sources(
+                sdr, _, sar = fast_bss_eval.bss_eval_sources(
                         target_i,
                         pred_i,
                         compute_permutation=False
@@ -100,68 +114,15 @@ if __name__ == '__main__':
                     )
                     
                 total_sdr += float(sdr[0])
-                total_sir += float(sir[0])
                 total_sar += float(sar[0])
                 total_si_sdr += float(si_sdr[0])
                 num_samples += 1
             
-            # Update progress bar
-            if num_samples > 0:
-                pbar.set_postfix({
-                    'SDR': f"{total_sdr / num_samples:.2f}",
-                    'SI-SDR': f"{total_si_sdr / num_samples:.2f}",
-                    'SIR': f"{total_sir / num_samples:.2f}",
-                    'SAR': f"{total_sar / num_samples:.2f}"
-                })
     
     print(f"\n{'='*60}")
     print(f"Test Results ({num_samples} samples)")
     print(f"{'='*60}")
     print(f"Average SDR:    {total_sdr / num_samples:.2f} dB")
-    print(f"Average SIR:    {total_sir / num_samples:.2f} dB")
     print(f"Average SAR:    {total_sar / num_samples:.2f} dB")
     print(f"Average SI-SDR: {total_si_sdr / num_samples:.2f} dB")
     print(f"{'='*60}")
-
-    #---------------------------------------------------------------------------
-    # Process one audio file for qualitative analysis
-    #---------------------------------------------------------------------------
-    import soundfile as sf
-    import os   
-
-    audio_path = 'examples/Dont_know_short.wav'
-    mixture, sr = sf.read(audio_path)
-    assert sr == 16000, "Sample rate must be 16 kHz"
-    mixture_tensor = torch.from_numpy(mixture).float().unsqueeze(0).to(device)  # (1, T)
-    mix_mag, mix_phase = stft.transform(mixture_tensor) 
-    mix_mag = mix_mag.unsqueeze(1)  # (1, 1, F, T')
-    mask_violon = model(mix_mag, None, 'violin')  
-    mask_sax = model(mix_mag, None, 'saxophone')
-    mask_piano = model(mix_mag, None, 'piano')
-    
-    pred_mag_violon = mask_violon * mix_mag
-    pred_mag_violon_squeezed = pred_mag_violon.squeeze(1)  
-    pred_wav_violon = stft.inverse(pred_mag_violon_squeezed, mix_phase)  
-    pred_wav_violon = pred_wav_violon.squeeze(1).numpy()  
-    
-    pred_mag_sax = mask_sax * mix_mag
-    pred_mag_sax_squeezed = pred_mag_sax.squeeze(1)  
-    pred_wav_sax = stft.inverse(pred_mag_sax_squeezed, mix_phase)  
-    pred_wav_sax = pred_wav_sax.squeeze(1).numpy()  
-    
-    pred_mag_piano = mask_piano * mix_mag
-    pred_mag_piano_squeezed = pred_mag_piano.squeeze(1)  
-    pred_wav_piano = stft.inverse(pred_mag_piano_squeezed, mix_phase)  
-    pred_wav_piano = pred_wav_piano.squeeze(1).numpy()  
-    
-    output_dir = 'examples/outputs'
-    os.makedirs(output_dir, exist_ok=True)
-    output_path_violon = os.path.join(output_dir, 'pred_violon.wav')
-    output_path_sax = os.path.join(output_dir, 'pred_sax.wav')
-    output_path_piano = os.path.join(output_dir, 'pred_piano.wav')
-    sf.write(output_path_violon, pred_wav_violon, sr)
-    sf.write(output_path_sax, pred_wav_sax, sr)
-    sf.write(output_path_piano, pred_wav_piano, sr)
-    print(f"Predicted violin saved to: {output_path_violon}")
-    print(f"Predicted saxophone saved to: {output_path_sax}")
-    print(f"Predicted piano saved to: {output_path_piano}")
