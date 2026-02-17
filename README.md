@@ -37,6 +37,6 @@ To test CLASS-net, you have to :
 Make sure you changed the audio_path to include one of the following exemples :
 
   ```
-  examples/dont_know_why.wav
-  examples/hey_jude.wav
-  examples/i_will_survive.wav
+  examples/dont_know_why_20.wav
+  examples/hey_jude_20.wav
+  examples/i_will_survive_20.wav
