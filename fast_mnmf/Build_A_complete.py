@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
-from src.separation.FastMNMF2 import FastMNMF2, MultiSTFT 
+from fast_MNMF2 import FastMNMF2, MultiSTFT 
 
 # --- Configuration ---
 CONF = {
