@@ -1,4 +1,8 @@
-# CLAP Language-Queried Audio Source Separation
+# Introduction
+
+This page is dedicated to a project conducted within the ATIAM Master’s program. The objective of this project is to separate a trio consisting of a tenor saxophonist, a violinist, and a pianist, recorded together in an acoustic room, as if each instrument had been recorded independently. Our approach is based on the relationship between microphone placement strategies for high-quality sound recording and a source separation algorithm combining deep learning and signal processing methods.
+
+## CLAP Language-Queried Audio Source Separation
 
 This repository is derived of the code and models from "[Separate What You Describe: Language-Queried Audio Source Separation](https://arxiv.org/pdf/2203.15147.pdf)" [INTERSPEECH 2022].
 All the modifications have been made as part of an AITAM master project dedicated to Multi-channel Acoustic Source Spearation.
@@ -7,53 +11,32 @@ All the modifications have been made as part of an AITAM master project dedicate
   <img align="middle" width="800" src="assets/LASS_clap.png"/>
 </p>
 
-Check the examples and presentation video in the [Demo Page](https://liuxubo717.github.io/LASS-demopage/)!
+You can visit our website, where we show several audio exemples and picture from the recorded session [Demo Page](https://loguerci.github.io/CLASS_website/)!
 
 ### Setup 
 Clone the repository and setup the conda environment: 
 
   ```
-  git clone https://github.com/liuxubo717/LASS.git && \
-  cd LASS && \ 
+  git clone https://github.com/loguerci/LASS_PAM && \
+  cd LASS_PAM && \ 
   conda env create -f environment.yml && \
   conda activate LASS 
+  pip install laion-clap
   ```
+
+After the setup, you need to import the proper model for CLAP (pretrained folder):
+https://huggingface.co/lukewys/laion_clap/blob/main/music_audioset_epoch_15_esc_90.14.pt
 
 ### Inference 
-For running the inference of the pre-trained LASS-Net model, please download our pre-trained [checkpoint](https://drive.google.com/file/d/1f8eCCYYaBdhsFqoi7PJMrT9Oo7GaWLdR/view?usp=sharing) and put it under `ckpt/`. We prepare ten audio mixtures (in  `examples/`) with text queries (as illustrated in the [Demo Page](https://liuxubo717.github.io/LASS-demopage/)) for a toy inference running. 
-
-Run inference with AudioCaps text queries:
+To test CLASS-net, you have to :
 
   ```
-  python inference.py -q AudioCaps
+  python separate.py
   ```
-Or run inference with our collected human annotations:
-  ```
-  python inference.py -q Human
-  ```
-The separated audio clips will be automatically saved in `output/`.
 
-### Dataset Recipe
-Due to the copyright of AudioSet we cannot release the raw data. The training and evaluation indexes in this work are available at  `dataset/`. For faciliating the reproduction and comparsion, we release our code of creating audio mixtures at `utils/create_mixtures.py`. Here is an example of usage:
-  ```python
-  from utils.create_mixtures import add_noise_and_scale
-  wav1 = torch.randn(1, 32000)
-  wav2 = torch.randn(1, 32000)
-  target, noise, snr, scale = add_noise_and_scale(wav1, wav2)
+Make sure you changed the audio_path to include one of the following exemples :
+
   ```
-### Updates
-- [x] Provide conda-pack envs
-- [x] Inference code and model release
-- [x] Dataset release
-- [x] Training code release at [AudioSep repo](https://github.com/Audio-AGI/AudioSep)
-
-
-### Citation
-```
-@inproceedings{liu2022separate,
-  title={Separate What You Describe: Language-Queried Audio Source Separation},
-  author={Liu, Xubo and Liu, Haohe and Kong, Qiuqiang and Mei, Xinhao and Zhao, Jinzheng and Huang, Qiushi and Plumbley, Mark D and Wang, Wenwu},
-  booktitle = {INTERSPEEH},
-  year = {2022}
-}
-```
+  examples/dont_know_why.wav
+  examples/hey_jude.wav
+  examples/i_will_survive.wav
