@@ -11,7 +11,7 @@ All the modifications have been made as part of an AITAM master project dedicate
   <img align="middle" width="800" src="assets/LASS_clap.png"/>
 </p>
 
-You can visit our website, where we show several audio exemples and picture from the recorded session [Demo Page](https://loguerci.github.io/CLASS_website/)!
+You can visit [our website](https://loguerci.github.io/CLASS_website/), where we show several audio exemples and picture from the recorded session.
 
 ### Setup 
 Clone the repository and setup the conda environment: 
