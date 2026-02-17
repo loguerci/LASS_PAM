@@ -24,8 +24,11 @@ Clone the repository and setup the conda environment:
   pip install laion-clap
   ```
 
-After the setup, you need to import the proper model for CLAP (pretrained folder):
+After the setup, you need to import the proper model for CLAP (pretrained folder) :
 https://huggingface.co/lukewys/laion_clap/blob/main/music_audioset_epoch_15_esc_90.14.pt
+
+And the proper model for LASS (if you want to fine-tune the model) :
+https://drive.google.com/file/d/1f8eCCYYaBdhsFqoi7PJMrT9Oo7GaWLdR/view?usp=sharing
 
 ### Inference 
 To test CLASS-net, you have to :
