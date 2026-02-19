@@ -31,7 +31,11 @@ And the proper model for LASS (if you want to fine-tune the model) :
 https://drive.google.com/file/d/1f8eCCYYaBdhsFqoi7PJMrT9Oo7GaWLdR/view?usp=sharing
 
 ### Inference 
-To test CLASS-net, you have to :
+To test CLASS-net, you need the proper model :
+
+https://drive.google.com/file/d/12ri1WiPbR3stDTL1Ag7U4FlSE_6beNWZ/view?usp=sharing
+
+Then you have to :
 
   ```
   python separate.py
@@ -43,3 +47,10 @@ Make sure you changed the audio_path to include one of the following exemples :
   examples/dont_know_why_20.wav
   examples/hey_jude_20.wav
   examples/i_will_survive_20.wav
+  ```
+
+Also, change the checkpoint path to :
+  
+  ```
+  ckpt_path = 'checkpoint/best.pth'
+  ```
